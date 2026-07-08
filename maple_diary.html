@@ -1,0 +1,2019 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f7f0e4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Maple Diary</title>
+<style>
+  :root{
+    --bg:#f7f0e4;
+    --card:#fffdf9;
+    --line:#ead9bf;
+    --ink:#5c3f1f;
+    --ink-soft:#9a7b52;
+    --accent:#e8973a;
+    --accent-deep:#d97f1e;
+    --danger:#c0563a;
+    --shadow-card:0 12px 30px rgba(92,63,31,.10);
+    --shadow-inset:inset 0 1px 0 rgba(255,255,255,.8);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+    background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5;
+  }
+  body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(100px);z-index:0;pointer-events:none}
+  body::before{width:520px;height:520px;background:rgba(244,180,120,.32);top:-160px;right:-140px}
+  body::after{width:460px;height:460px;background:rgba(240,150,140,.20);bottom:-140px;left:120px}
+
+  .layout{position:relative;z-index:1;display:flex;min-height:100vh}
+
+  /* ---------- 사이드바 ---------- */
+  aside{
+    width:230px;flex-shrink:0;position:sticky;top:0;height:100vh;
+    padding:28px 16px;display:flex;flex-direction:column;
+    background:rgba(255,253,249,.7);backdrop-filter:blur(8px);
+    border-right:1px solid var(--line);
+  }
+  .logo{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:800;padding:0 10px;margin-bottom:6px}
+  .logo .leaf{font-size:20px}
+  .logo-sub{font-size:11px;color:var(--ink-soft);padding:0 10px;margin-bottom:26px}
+  aside nav{display:flex;flex-direction:column;gap:4px}
+  aside nav button{
+    display:flex;align-items:center;gap:10px;border:none;background:none;cursor:pointer;
+    font-family:inherit;font-size:14px;font-weight:600;color:var(--ink-soft);
+    padding:11px 12px;border-radius:14px;text-align:left;transition:background .15s;
+  }
+  aside nav button:hover{background:rgba(232,151,58,.08)}
+  aside nav button.on{background:#fdeeda;color:var(--accent-deep);font-weight:800}
+  aside nav button .ico{font-size:16px;width:20px;text-align:center}
+  .side-bottom{margin-top:auto}
+  .side-profile{
+    display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 12px;margin-top:8px;
+    background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow-inset);
+    text-align:center;
+  }
+  .side-profile .avatar{
+    width:160px;height:160px;border-radius:20px;background:linear-gradient(135deg,#f2a54a,#d97f1e);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:44px;flex-shrink:0;
+    overflow:hidden;
+  }
+  .side-profile .name{font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+  .side-profile .greet{font-size:11px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+
+  /* ---------- 메인 ---------- */
+  main{flex:1;min-width:0;padding:36px 44px 60px;max-width:1240px}
+  .view{display:none}
+  .view.active{display:block;animation:fade .22s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;gap:20px}
+  .page-title{font-size:26px;font-weight:800}
+  .page-sub{font-size:13px;color:var(--ink-soft);margin-top:2px}
+
+  .panel{
+    background:var(--card);border:1px solid var(--line);border-radius:24px;
+    padding:22px 24px;box-shadow:var(--shadow-card);
+  }
+  .panel-inner{
+    background:linear-gradient(180deg,rgba(255,252,248,.98),rgba(248,241,228,.96));
+    border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow-inset);
+  }
+  .card-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+  .card-title{font-size:16px;font-weight:800}
+  .card-sub{font-size:12px;color:var(--ink-soft)}
+  .card-aside{font-size:13px;font-weight:700;color:var(--accent-deep)}
+  a.card-aside{cursor:pointer;text-decoration:none}
+
+  /* 대시보드 그리드 */
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+  .span-3{grid-column:span 3}.span-4{grid-column:span 4}.span-5{grid-column:span 5}
+  .span-6{grid-column:span 6}.span-7{grid-column:span 7}.span-8{grid-column:span 8}.span-12{grid-column:span 12}
+  @media (max-width:1000px){
+    .span-3,.span-4,.span-5,.span-6,.span-7,.span-8{grid-column:span 12}
+    main{padding:28px 20px}
+    aside{width:74px;padding:24px 10px}
+    aside .logo span:not(.leaf),aside .logo-sub,aside nav button .txt,.side-profile div{display:none}
+    aside nav button{justify-content:center}
+    .side-profile{justify-content:center;padding:8px}
+    .side-profile .avatar{width:44px;height:44px;font-size:18px;border-radius:12px}
+  }
+
+  .kpi .label{font-size:12px;color:var(--ink-soft);margin-bottom:6px}
+  .kpi .value{font-size:22px;font-weight:800;word-break:keep-all}
+  .kpi .value.small{font-size:17px}
+  .kpi .hint{font-size:12px;color:var(--ink-soft);margin-top:4px}
+
+  .empty{
+    background:linear-gradient(180deg,rgba(255,252,248,.98),rgba(248,241,228,.96));
+    border:1px solid var(--line);border-radius:18px;
+    padding:34px 16px;text-align:center;color:var(--ink-soft);font-size:14px;
+  }
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    border:none;cursor:pointer;
+    background:linear-gradient(180deg,#f2a54a,var(--accent-deep));
+    color:#fff;font-size:14px;font-weight:800;font-family:inherit;
+    padding:11px 22px;border-radius:16px;
+    box-shadow:0 8px 18px rgba(217,127,30,.3);transition:transform .1s ease;white-space:nowrap;
+  }
+  .btn:active{transform:scale(.97)}
+  .btn.ghost{background:var(--card);color:var(--accent-deep);border:1px solid var(--line);box-shadow:var(--shadow-card)}
+  .btn.danger{background:linear-gradient(180deg,#d4694c,var(--danger));box-shadow:0 8px 18px rgba(192,86,58,.28)}
+  .btn.block{display:flex;width:100%}
+
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{
+    border:1px solid var(--line);background:var(--card);color:var(--ink);
+    font-size:13px;font-weight:700;font-family:inherit;padding:8px 18px;border-radius:999px;cursor:pointer;
+    box-shadow:var(--shadow-card);
+  }
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  /* ---------- 캘린더 ---------- */
+  .cal-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .cal-title{font-size:17px;font-weight:800}
+  .btn-nav{
+    border:1px solid var(--line);background:var(--card);border-radius:12px;
+    width:34px;height:34px;cursor:pointer;font-size:13px;color:var(--ink);font-family:inherit;
+  }
+  .btn-nav:hover{border-color:var(--accent);color:var(--accent-deep)}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .cal-dow{text-align:center;font-size:12px;font-weight:700;color:var(--ink-soft);padding:4px 0 8px}
+  .cal-dow.sun{color:var(--danger)}
+  .cal-cell{
+    min-height:78px;border:1px solid var(--line);border-radius:14px;background:#fffdf9;
+    padding:8px 9px;cursor:pointer;box-shadow:var(--shadow-inset);transition:border-color .12s;
+  }
+  .cal-cell.blank{background:none;border:none;box-shadow:none;cursor:default}
+  .cal-cell:hover:not(.blank){border-color:var(--accent)}
+  .cal-cell.has{background:#fdeeda}
+  .cal-cell.sel{outline:2px solid var(--accent);outline-offset:-1px}
+  .cal-cell .d{font-size:12px;font-weight:700;color:var(--ink-soft)}
+  .cal-cell.today .d{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;
+  }
+  .cal-cell .cnet{font-size:11.5px;font-weight:800;color:var(--accent-deep);margin-top:5px;line-height:1.3;word-break:keep-all}
+  .cal-cell .csoj{font-size:10.5px;color:var(--ink-soft);margin-top:1px}
+  .cal-cell .cnet.neg{color:var(--danger)}
+  /* ---------- 보스 정산 ---------- */
+  .diff{
+    display:inline-flex;align-items:center;gap:4px;border-radius:9px;
+    font-size:10.5px;font-weight:800;letter-spacing:.3px;padding:4px 9px;
+    cursor:pointer;border:1.5px solid;background:#fff;font-family:inherit;margin:2px 5px 2px 0;
+  }
+  .d-extreme{color:#d92b21;border-color:#f0b6b2}
+  .d-hard{color:#e5484d;border-color:#f3bcbe}
+  .d-chaos{color:#4b4b4b;border-color:#cfcfcf}
+  .d-normal{color:#3d7de0;border-color:#bcd2f5}
+  .d-easy{color:#8b929a;border-color:#d5d9dd}
+  .diff.on{color:#fff}
+  .d-extreme.on{background:#d92b21;border-color:#d92b21}
+  .d-hard.on{background:#e5484d;border-color:#e5484d}
+  .d-chaos.on{background:#4b4b4b;border-color:#4b4b4b}
+  .d-normal.on{background:#3d7de0;border-color:#3d7de0}
+  .d-easy.on{background:#8b929a;border-color:#8b929a}
+  .party-sel{
+    border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-family:inherit;
+    font-size:13px;background:#fffdf9;color:var(--ink);cursor:pointer;
+  }
+  .bs-label{font-size:13px;font-weight:800;color:var(--ink-soft);margin:16px 0 4px}
+  .pill-in, .pill-out{
+    display:inline-flex;align-items:center;font-size:12px;font-weight:800;
+    padding:5px 12px;border-radius:999px;cursor:pointer;text-decoration:none;
+  }
+  .pill-in{background:#fdeeda;color:var(--accent-deep);border:1px solid #f0c48a}
+  .pill-out{background:#f9e2dc;color:var(--danger);border:1px solid #e8b3a6}
+  .btn.income{background:linear-gradient(180deg,#f2a54a,var(--accent-deep))}
+  .wk-tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .wk-tab{
+    border:1px solid var(--line);background:var(--card);border-radius:16px;
+    padding:10px 16px;cursor:pointer;font-family:inherit;text-align:left;
+    box-shadow:var(--shadow-card);min-width:132px;
+  }
+  .wk-tab:hover{border-color:var(--accent)}
+  .wk-tab.on{border-color:var(--accent);background:#fdeeda}
+  .wk-tab .w1{font-size:13px;font-weight:800}
+  .wk-tab .w2{font-size:11px;color:var(--ink-soft);margin-top:1px}
+  .wk-tab .w3{font-size:12px;font-weight:800;color:var(--accent-deep);margin-top:3px}
+
+  .preview-line{
+    background:#fdeeda;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700;
+    color:var(--accent-deep);margin-top:4px;
+  }
+
+  /* ---------- 테이블 ---------- */
+  .tbl-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  thead th{
+    text-align:left;font-size:12px;font-weight:700;color:var(--ink-soft);
+    padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;
+  }
+  thead th.num,td.num{text-align:right}
+  tbody td{padding:12px;border-bottom:1px dashed var(--line);vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover td{background:rgba(232,151,58,.05)}
+  td .sub{font-size:12px;color:var(--ink-soft)}
+  td.strong{font-weight:800}
+  td .minus{color:var(--danger);font-weight:800}
+  .del{border:none;background:none;color:#cbb08a;font-size:15px;cursor:pointer;padding:4px 6px;line-height:1;border-radius:8px}
+  .del:hover{color:var(--danger);background:rgba(192,86,58,.08)}
+  .tag{display:inline-block;background:#fdeeda;color:var(--accent-deep);font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px}
+
+  /* 대시보드 최근사냥 컴팩트 */
+  .mini-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px dashed var(--line)}
+  .mini-item:last-child{border-bottom:none}
+  .mini-item .t1{font-size:14px;font-weight:700}
+  .mini-item .t2{font-size:12px;color:var(--ink-soft)}
+  .mini-item .amt{font-size:14px;font-weight:800;white-space:nowrap}
+
+  svg text{font-family:inherit}
+
+  .progress-track{background:#f3e7d3;border-radius:999px;height:14px;overflow:hidden;margin:10px 0 6px}
+  .progress-fill{background:linear-gradient(90deg,#f2a54a,var(--accent-deep));height:100%;border-radius:999px;transition:width .4s ease}
+  .progress-note{font-size:13px;color:var(--ink-soft)}
+  .stat-line{display:flex;justify-content:space-between;padding:9px 2px;border-bottom:1px dashed var(--line);font-size:14px}
+  .stat-line:last-child{border-bottom:none}
+  .stat-line b{font-weight:800}
+
+  /* ---------- 모달 ---------- */
+  .modal-bg{
+    display:none;position:fixed;inset:0;background:rgba(92,63,31,.35);z-index:20;
+    align-items:center;justify-content:center;padding:24px;
+  }
+  .modal-bg.open{display:flex}
+  .modal{
+    background:var(--card);border-radius:24px;width:100%;max-width:480px;
+    padding:26px 26px 24px;max-height:88vh;overflow-y:auto;box-shadow:0 24px 60px rgba(92,63,31,.25);
+    animation:pop .2s ease;
+  }
+  @keyframes pop{from{transform:scale(.96);opacity:0}to{transform:none;opacity:1}}
+  .modal h3{font-size:18px;font-weight:800;margin-bottom:18px}
+  .field{margin-bottom:13px}
+  .field label{display:block;font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:5px}
+  .field input,.field select{
+    width:100%;border:1px solid var(--line);border-radius:13px;padding:10px 12px;
+    font-size:14px;font-family:inherit;background:#fffdf9;color:var(--ink);
+  }
+  .field input:focus,.field select:focus{outline:2px solid var(--accent);border-color:transparent}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .modal-actions{display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:20px}
+
+  .note{font-size:12px;color:var(--ink-soft);margin-top:10px}
+  .toast{
+    position:fixed;left:50%;bottom:36px;transform:translateX(-50%);
+    background:var(--ink);color:#fff;font-size:13px;padding:10px 20px;border-radius:999px;
+    opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:30;white-space:nowrap;
+  }
+  .toast.show{opacity:1}
+
+  /* ---------- 모바일 (iOS / Android) ---------- */
+  *{-webkit-tap-highlight-color:transparent}
+  button, .chip, .diff, .cal-cell, .wk-tab, nav button{touch-action:manipulation}
+  @media (max-width:768px){
+    body{font-size:14px}
+    .layout{display:block}
+
+    /* 사이드바 → 하단 탭 바 */
+    aside{
+      position:fixed;left:0;right:0;bottom:0;top:auto;width:100%;height:auto;z-index:50;
+      flex-direction:row;padding:6px 6px calc(6px + env(safe-area-inset-bottom));
+      border-right:none;border-top:1px solid var(--line);
+      background:rgba(255,253,249,.96);backdrop-filter:blur(10px);
+    }
+    aside .logo, aside .logo-sub, .side-bottom{display:none}
+    aside nav{flex-direction:row;width:100%;gap:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+    aside nav::-webkit-scrollbar{display:none}
+    aside nav button{
+      flex:1 0 auto;flex-direction:column;justify-content:center;gap:2px;
+      font-size:10px;padding:6px 9px;min-width:52px;border-radius:12px;
+    }
+    aside nav button .ico{font-size:17px}
+    aside nav button .txt{display:block}
+
+    main{padding:18px 12px calc(84px + env(safe-area-inset-bottom));max-width:100%}
+
+    /* 페이지 헤더: 세로 스택 */
+    .page-head{flex-direction:column;align-items:stretch;gap:10px;margin-bottom:16px}
+    .page-title{font-size:21px}
+    .page-head > div[style*="display:flex"]{flex-wrap:wrap}
+    .page-head .btn{width:100%;justify-content:center}
+    .page-head div[style] .btn{flex:1;width:auto}
+
+    /* 그리드: KPI는 2열, 나머지는 1열 */
+    .grid{gap:10px}
+    .span-3{grid-column:span 6}
+    .span-4,.span-5,.span-6,.span-7,.span-8,.span-12{grid-column:span 12}
+    .panel{padding:16px;border-radius:20px}
+    .kpi .value{font-size:18px}
+
+    /* 캘린더 축소 */
+    .cal-grid{gap:3px}
+    .cal-cell{min-height:56px;padding:4px 5px;border-radius:10px}
+    .cal-cell .d{font-size:10px}
+    .cal-cell.today .d{width:17px;height:17px}
+    .cal-cell .cnet{font-size:9.5px;margin-top:2px}
+    .cal-cell .csoj{font-size:8.5px}
+
+    /* 주차 탭 / 칩: 가로 스크롤 */
+    .wk-tabs, .chips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+    .wk-tabs::-webkit-scrollbar, .chips::-webkit-scrollbar{display:none}
+    .wk-tab{min-width:118px;flex-shrink:0;padding:9px 12px}
+    .chip{flex-shrink:0}
+
+    /* 표는 가로 스크롤 유지 */
+    .tbl-wrap{margin:0 -4px}
+    .tbl-wrap table{min-width:540px}
+    thead th, tbody td{padding:9px 8px;font-size:13px}
+
+    /* 입력 모달 → 바텀시트, iOS 자동확대 방지(16px) */
+    .modal-bg{align-items:flex-end;padding:0}
+    .modal{
+      max-width:100%;border-radius:24px 24px 0 0;
+      padding:22px 18px calc(22px + env(safe-area-inset-bottom));
+      max-height:92vh;
+    }
+    .field input, .field select{font-size:16px;padding:12px}
+    #goal-input, #set-name, #set-greet, #set-nxkey, #set-nxname, #sol-price{font-size:16px}
+
+    .toast{bottom:calc(86px + env(safe-area-inset-bottom))}
+    .btn-nav{width:38px;height:38px}
+    .del{padding:8px}
+    .diff{padding:5px 8px;font-size:10px;margin:2px 4px 2px 0}
+    .party-sel{padding:7px 6px}
+  }
+  @media (max-width:380px){
+    .cal-cell{min-height:50px}
+    .cal-cell .cnet{font-size:8.5px}
+    aside nav button{min-width:48px;font-size:9px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ============ 사이드바 ============ -->
+  <aside>
+    <div class="logo"><span class="leaf">🍁</span><span>Maple Diary</span></div>
+    <div class="logo-sub">메이플 수익 기록장</div>
+    <nav id="nav">
+      <button data-v="dashboard" class="on"><span class="ico">🏠</span><span class="txt">대시보드</span></button>
+      <button data-v="records"><span class="ico">📋</span><span class="txt">사냥</span></button>
+      <button data-v="boss"><span class="ico">👑</span><span class="txt">보스</span></button>
+      <button data-v="expenses"><span class="ico">💳</span><span class="txt">가계부</span></button>
+      <button data-v="cash"><span class="ico">🍚</span><span class="txt">쌀 장부</span></button>
+      <button data-v="level"><span class="ico">⭐</span><span class="txt">레벨</span></button>
+      <button data-v="settings"><span class="ico">⚙️</span><span class="txt">설정</span></button>
+    </nav>
+    <div class="side-bottom">
+      <div class="side-profile">
+        <div class="avatar" id="side-avatar">용</div>
+        <div>
+          <div class="name" id="side-name"></div>
+          <div class="greet" id="side-greet"></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <!-- ============ 대시보드 ============ -->
+    <section class="view active" id="view-dashboard">
+      <div class="page-head">
+        <div>
+          <div class="page-title" id="db-hello"></div>
+          <div class="page-sub" id="db-date"></div>
+        </div>
+        <button class="btn" onclick="openSheet('hunt')">+ 사냥 추가</button>
+      </div>
+
+      <div class="grid" style="margin-bottom:16px">
+        <div class="panel kpi span-3"><div class="label">오늘 순수익</div><div class="value" id="db-today"></div></div>
+        <div class="panel kpi span-3"><div class="label">최근 7일 평균</div><div class="value" id="db-avg7"></div></div>
+        <div class="panel kpi span-3" style="position:relative">
+          <div class="label">목표 진행 <a class="card-aside" style="position:absolute;top:14px;right:16px;font-size:12px;cursor:pointer" onclick="toggleGoalEdit()" id="db-goal-toggle">✏️ 설정</a></div>
+          <div id="db-goal-view">
+            <div class="value small" id="db-goal"></div>
+            <div class="progress-track" style="height:6px;margin:7px 0 5px"><div class="progress-fill" id="db-goal-bar" style="width:0%"></div></div>
+            <div class="hint" id="db-goal-hint"></div>
+          </div>
+          <div id="db-goal-edit" style="display:none">
+            <input type="number" id="db-goal-input" min="0" step="0.1" placeholder="월 목표 (억)" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:9px 11px;font-size:15px;font-family:inherit;background:#fffdf9;color:var(--ink);margin-bottom:8px">
+            <button class="btn block" style="padding:9px;font-size:13px" onclick="saveGoalInline()">저장</button>
+          </div>
+        </div>
+        <div class="panel kpi span-3"><div class="label">이번 달 활동일</div><div class="value" id="db-active"></div><div class="hint" id="db-total-hunt"></div></div>
+      </div>
+
+      <div class="grid" style="margin-bottom:16px">
+        <div class="panel span-8">
+          <div class="card-head">
+            <div><div class="card-title">최근 7일</div><div class="card-sub">일자별 순수익 추이 (사냥 − 지출)</div></div>
+            <div class="card-aside" id="db-chart-avg"></div>
+          </div>
+          <div id="db-chart"></div>
+        </div>
+        <div class="panel span-4">
+          <div class="card-head">
+            <div><div class="card-title">이번 달 지출</div><div class="card-sub">구매/강화/소모 비용 요약</div></div>
+            <div class="card-aside" id="db-exp-total"></div>
+          </div>
+          <div id="db-exp-list"></div>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-bottom:16px">
+        <div class="panel span-7">
+          <div class="card-head">
+            <div class="card-title">최근 사냥</div>
+            <a class="card-aside" onclick="go('records')">전체보기</a>
+          </div>
+          <div id="db-recent"></div>
+        </div>
+        <div class="panel span-5">
+          <div class="card-head">
+            <div class="card-title">이번 달 요약</div>
+          </div>
+          <div id="db-month-summary"></div>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-bottom:16px">
+        <div class="panel span-6">
+          <div class="card-title" style="margin-bottom:10px">수익원 비중 (이번 달)</div>
+          <div id="db-sources"></div>
+        </div>
+        <div class="panel span-6">
+          <div class="card-title" style="margin-bottom:10px">사냥 효율 (이번 달)</div>
+          <div id="db-eff"></div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="panel span-6">
+          <div class="card-head">
+            <div><div class="card-title">🍚 쌀 장부</div><div class="card-sub">현금(원) 기준 · 게임 재화와 독립 집계</div></div>
+            <a class="card-aside" onclick="go('cash')">전체보기</a>
+          </div>
+          <div id="db-cash"></div>
+        </div>
+        <div class="panel span-6">
+          <div class="card-head">
+            <div><div class="card-title">⭐ 레벨</div><div class="card-sub">최근 7일 성장</div></div>
+            <a class="card-aside" onclick="go('level')">전체보기</a>
+          </div>
+          <div id="db-level"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 사냥 ============ -->
+    <section class="view" id="view-records">
+      <div class="page-head">
+        <div><div class="page-title">사냥 기록</div><div class="page-sub">캘린더에서 날짜를 선택해 기록하세요 · 1 소재비 = 30분</div></div>
+        <button class="btn" onclick="openSheet('hunt')">+ 사냥 추가</button>
+      </div>
+      <div class="grid">
+        <div class="panel span-8">
+          <div class="cal-nav">
+            <button class="btn-nav" onclick="calMove(-1)" aria-label="이전 달">◀</button>
+            <div class="cal-title" id="cal-title"></div>
+            <button class="btn-nav" onclick="calMove(1)" aria-label="다음 달">▶</button>
+          </div>
+          <div class="cal-grid">
+            <div class="cal-dow sun">일</div><div class="cal-dow">월</div><div class="cal-dow">화</div>
+            <div class="cal-dow">수</div><div class="cal-dow">목</div><div class="cal-dow">금</div><div class="cal-dow">토</div>
+          </div>
+          <div class="cal-grid" id="cal-grid-days"></div>
+        </div>
+        <div class="span-4">
+          <div class="panel" style="margin-bottom:16px">
+            <div class="card-head">
+              <div class="card-title" id="day-title"></div>
+              <a class="card-aside" onclick="openSheet('hunt')">+ 기록</a>
+            </div>
+            <div id="day-detail"></div>
+          </div>
+          <div class="panel" style="margin-bottom:16px">
+            <div class="card-title" style="margin-bottom:4px">솔 에르다 조각 시세</div>
+            <div class="card-sub" style="margin-bottom:10px">시세가 바뀌면 모든 기록의 수익이 다시 계산됩니다</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="number" id="sol-price" min="0" step="10" style="flex:1;border:1px solid var(--line);border-radius:13px;padding:10px 12px;font-size:14px;font-family:inherit;background:#fffdf9;color:var(--ink)">
+              <span style="font-size:13px;font-weight:700;color:var(--ink-soft);white-space:nowrap">만 메소 / 개</span>
+            </div>
+            <button class="btn ghost block" style="margin-top:10px" onclick="saveSolPrice()">시세 저장</button>
+          </div>
+          <div class="panel">
+            <div class="card-title" style="margin-bottom:8px" id="cal-month-label"></div>
+            <div id="cal-month-summary"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 가계부 ============ -->
+    <section class="view" id="view-expenses">
+      <div class="page-head">
+        <div><div class="page-title">가계부</div><div class="page-sub">아이템 구매·판매 등 수입(+)과 지출(−)을 일자별로 기록하세요</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn income" onclick="openLedger('in')">+ 수입</button>
+          <button class="btn danger" onclick="openLedger('out')">− 지출</button>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="panel span-8">
+          <div class="cal-nav">
+            <button class="btn-nav" onclick="ledMove(-1)" aria-label="이전 달">◀</button>
+            <div class="cal-title" id="led-title"></div>
+            <button class="btn-nav" onclick="ledMove(1)" aria-label="다음 달">▶</button>
+          </div>
+          <div class="cal-grid">
+            <div class="cal-dow sun">일</div><div class="cal-dow">월</div><div class="cal-dow">화</div>
+            <div class="cal-dow">수</div><div class="cal-dow">목</div><div class="cal-dow">금</div><div class="cal-dow">토</div>
+          </div>
+          <div class="cal-grid" id="led-grid-days"></div>
+          <div class="note">셀 금액은 그 날의 순액(수입 − 지출)입니다.</div>
+        </div>
+        <div class="span-4">
+          <div class="panel" style="margin-bottom:16px">
+            <div class="card-head">
+              <div class="card-title" id="led-day-title"></div>
+              <div style="display:flex;gap:6px">
+                <a class="pill-in" onclick="openLedger('in')">+ 수입</a>
+                <a class="pill-out" onclick="openLedger('out')">− 지출</a>
+              </div>
+            </div>
+            <div id="led-day-detail"></div>
+          </div>
+          <div class="panel" style="margin-bottom:16px">
+            <div class="card-title" style="margin-bottom:8px" id="led-month-label"></div>
+            <div id="led-month-summary"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 쌀 장부 ============ -->
+    <section class="view" id="view-cash">
+      <div class="page-head">
+        <div><div class="page-title">쌀 장부</div><div class="page-sub">현금(원) 기준 장부 · 캐시 충전, 메소 현금 거래 등을 기록합니다 · 게임 재화 집계와 독립</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn income" onclick="openCash('in')">+ 수입</button>
+          <button class="btn danger" onclick="openCash('out')">− 지출</button>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="panel span-8">
+          <div class="cal-nav">
+            <button class="btn-nav" onclick="cashMove(-1)" aria-label="이전 달">◀</button>
+            <div class="cal-title" id="cash-title"></div>
+            <button class="btn-nav" onclick="cashMove(1)" aria-label="다음 달">▶</button>
+          </div>
+          <div class="cal-grid">
+            <div class="cal-dow sun">일</div><div class="cal-dow">월</div><div class="cal-dow">화</div>
+            <div class="cal-dow">수</div><div class="cal-dow">목</div><div class="cal-dow">금</div><div class="cal-dow">토</div>
+          </div>
+          <div class="cal-grid" id="cash-grid-days"></div>
+          <div class="note">셀 금액은 그 날의 순액(수입 − 지출)입니다.</div>
+        </div>
+        <div class="span-4">
+          <div class="panel" style="margin-bottom:16px">
+            <div class="card-head">
+              <div class="card-title" id="cash-day-title"></div>
+              <div style="display:flex;gap:6px">
+                <a class="pill-in" onclick="openCash('in')">+ 수입</a>
+                <a class="pill-out" onclick="openCash('out')">− 지출</a>
+              </div>
+            </div>
+            <div id="cash-day-detail"></div>
+          </div>
+          <div class="panel" style="margin-bottom:16px">
+            <div class="card-title" style="margin-bottom:8px" id="cash-month-label"></div>
+            <div id="cash-month-summary"></div>
+          </div>
+          <div class="panel">
+            <div class="card-title" style="margin-bottom:8px">전체 누적</div>
+            <div id="cash-total-summary"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 보스 ============ -->
+    <section class="view" id="view-boss">
+      <div class="page-head">
+        <div><div class="page-title">보스</div><div class="page-sub">주간 사이클: 목요일 00:00 ~ 수요일 23:59 · 목요일이 속한 달의 주차로 기록됩니다</div></div>
+      </div>
+      <div class="panel" style="margin-bottom:16px">
+        <div class="cal-nav">
+          <button class="btn-nav" onclick="bossMove(-1)" aria-label="이전 달">◀</button>
+          <div class="cal-title" id="bs-month-title"></div>
+          <button class="btn-nav" onclick="bossMove(1)" aria-label="다음 달">▶</button>
+        </div>
+        <div class="grid" style="gap:10px">
+          <div class="panel-inner span-4"><div class="card-sub">주간보스 수익 합계</div><div style="font-size:17px;font-weight:800" id="bs-weekly"></div></div>
+          <div class="panel-inner span-4"><div class="card-sub">결정 판매 갯수</div><div style="font-size:17px;font-weight:800" id="bs-count"></div></div>
+          <div class="panel-inner span-4"><div class="card-sub">월간보스 수익 (검은 마법사)</div><div style="font-size:17px;font-weight:800" id="bs-monthly"></div></div>
+        </div>
+        <div class="panel-inner" style="margin-top:10px;border-color:#f0c48a;background:#fdeeda">
+          <div class="card-sub" id="bs-total-label">월간수익 합계</div>
+          <div style="font-size:21px;font-weight:800;color:var(--accent-deep)" id="bs-total"></div>
+        </div>
+      </div>
+      <div class="wk-tabs" id="bs-week-tabs"></div>
+      <div class="panel tbl-wrap">
+        <div class="card-head">
+          <div>
+            <div class="card-title" id="bs-sel-title"></div>
+            <div class="card-sub" id="bs-sel-sub"></div>
+          </div>
+          <div id="bs-actions" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"></div>
+        </div>
+        <div id="bs-table"></div>
+      </div>
+    </section>
+
+    <!-- ============ 레벨 ============ -->
+    <section class="view" id="view-level">
+      <div class="page-head">
+        <div><div class="page-title">레벨</div><div class="page-sub">일별 경험치 기록 · 전일 대비 상승률을 추적합니다 (Nexon Open API)</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="card-sub" id="lv-status"></span>
+          <button class="btn ghost" onclick="fetchLevels(30)">최근 30일 불러오기</button>
+          <button class="btn" onclick="fetchLevelNow()">현재 시점 기록</button>
+        </div>
+      </div>
+      <div class="grid" style="margin-bottom:16px">
+        <div class="panel span-8">
+          <div class="cal-nav">
+            <button class="btn-nav" onclick="lvMove(-1)" aria-label="이전 달">◀</button>
+            <div class="cal-title" id="lv-title"></div>
+            <button class="btn-nav" onclick="lvMove(1)" aria-label="다음 달">▶</button>
+          </div>
+          <div class="cal-grid">
+            <div class="cal-dow sun">일</div><div class="cal-dow">월</div><div class="cal-dow">화</div>
+            <div class="cal-dow">수</div><div class="cal-dow">목</div><div class="cal-dow">금</div><div class="cal-dow">토</div>
+          </div>
+          <div class="cal-grid" id="lv-grid-days"></div>
+        </div>
+        <div class="span-4">
+          <div class="panel" style="margin-bottom:16px">
+            <div class="card-head"><div class="card-title" id="lv-day-title"></div></div>
+            <div id="lv-day-detail"></div>
+          </div>
+          <div class="panel" style="margin-bottom:16px">
+            <div class="card-title" style="margin-bottom:8px">누적 상승</div>
+            <div id="lv-summary"></div>
+          </div>
+          <div class="panel">
+            <div class="card-title" style="margin-bottom:4px">연동 안내</div>
+            <div class="note" style="margin-top:6px">설정 탭에서 Nexon Open API 키와 캐릭터 닉네임을 저장하면 사용할 수 있어요. 과거 날짜 데이터는 다음 날 새벽부터 조회됩니다.</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="card-head">
+          <div><div class="card-title" id="lv-chart-title"></div><div class="card-sub">막대는 전일 대비 상승률, ★는 레벨업한 날</div></div>
+          <div class="card-aside" id="lv-chart-sum"></div>
+        </div>
+        <div id="lv-chart"></div>
+      </div>
+    </section>
+
+    <!-- ============ 설정 ============ -->
+    <section class="view" id="view-settings">
+      <div class="page-head">
+        <div><div class="page-title">설정</div><div class="page-sub">프로필과 데이터를 관리하세요</div></div>
+      </div>
+      <div class="grid">
+        <div class="panel span-6">
+          <div class="card-title" style="margin-bottom:14px">프로필</div>
+          <div class="field">
+            <label for="set-name">캐릭터 이름</label>
+            <input type="text" id="set-name" placeholder="캐릭터 이름">
+          </div>
+          <div class="field">
+            <label for="set-greet">인사말</label>
+            <input type="text" id="set-greet" placeholder="오늘도 재획 화이팅">
+          </div>
+          <button class="btn block" onclick="saveProfile()">프로필 저장</button>
+        </div>
+        <div class="panel span-6">
+          <div class="card-title" style="margin-bottom:14px">Nexon Open API</div>
+          <div class="field">
+            <label for="set-nxkey">API 키</label>
+            <input type="password" id="set-nxkey" placeholder="openapi.nexon.com에서 발급">
+          </div>
+          <div class="field">
+            <label for="set-nxname">캐릭터 닉네임</label>
+            <input type="text" id="set-nxname" placeholder="예: 석사생프리렌">
+          </div>
+          <button class="btn block" onclick="saveNexon()">API 연동 저장</button>
+          <div class="note">레벨 탭의 경험치 기록에 사용됩니다. 키는 이 브라우저(로컬)에만 저장돼요.</div>
+        </div>
+        <div class="panel span-6">
+          <div class="card-title" style="margin-bottom:14px">데이터</div>
+          <button class="btn ghost block" style="margin-bottom:10px" onclick="exportData()">데이터 내보내기 (JSON)</button>
+          <button class="btn ghost block" style="margin-bottom:10px" onclick="document.getElementById('import-file').click()">데이터 가져오기</button>
+          <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+          <button class="btn danger block" onclick="resetData()">모든 데이터 초기화</button>
+          <div class="note">데이터는 이 브라우저에만 저장됩니다. 다른 기기로 옮기려면 내보내기를 사용하세요.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ============ 입력 모달 ============ -->
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeSheet()">
+  <div class="modal">
+    <h3 id="sheet-title"></h3>
+    <div id="sheet-fields"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeSheet()">취소</button>
+      <button class="btn" onclick="submitSheet()">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ---------- 저장소 (localStorage 실패 시 메모리로 대체) ---------- */
+const mem = {};
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem('maple_diary:'+k); return v===null ? d : JSON.parse(v); }catch(e){ return k in mem ? mem[k] : d; } },
+  set(k, v){ try{ localStorage.setItem('maple_diary:'+k, JSON.stringify(v)); }catch(e){} mem[k]=v; },
+  clearAll(){ try{ Object.keys(localStorage).filter(k=>k.startsWith('maple_diary:')).forEach(k=>localStorage.removeItem(k)); }catch(e){} Object.keys(mem).forEach(k=>delete mem[k]); }
+};
+
+/* ---------- 상태 ---------- */
+let state = {
+  profile: store.get('profile', {name:'용사', greet:'오늘도 재획 화이팅'}),
+  goal: store.get('goal', 0),
+  solPrice: store.get('solPrice', 5700000),
+  cash: store.get('cash', []),
+  nexonKey: store.get('nexonKey', ''),
+  mapleName: store.get('mapleName', ''),
+  ocid: store.get('ocid', ''),
+  ocidName: store.get('ocidName', ''),
+  levelLog: store.get('levelLog', {}),
+  charImage: store.get('charImage', ''),
+  hunts: store.get('hunts', []),
+  expenses: store.get('expenses', []).map(e=>e.kind?e:Object.assign({},e,{kind:'out'})),
+  bossWeeks: (bw=>{ /* 수요일 키(구버전) → 목요일 키 이관 */
+    const out={};
+    for(const k of Object.keys(bw)){
+      const d=new Date(k+'T00:00:00');
+      if(d.getDay()===3){ d.setDate(d.getDate()-6);
+        const nk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        if(!out[nk]) out[nk]=bw[k];
+      } else if(!out[k]) out[k]=bw[k];
+    }
+    /* 단일 구조(weekly) → 캐릭터 슬롯 구조(chars)로 정규화 */
+    for(const k of Object.keys(out)){
+      const v = out[k];
+      if(v && v.weekly && !v.chars){ out[k] = {chars:[{id:'main', name:'주 캐릭터', weekly:v.weekly}]}; }
+      else if(v && !v.chars){ out[k] = {chars:[]}; }
+    }
+    return out;
+  })(store.get('bossWeeks', {})),
+  bossMonths: (bm=>{
+    for(const k of Object.keys(bm)){
+      const v = bm[k];
+      if(v && !v.chars) bm[k] = {chars:[{id:'main', name:'주 캐릭터', diff:v.diff||null, party:v.party||1}]};
+    }
+    return bm;
+  })(store.get('bossMonths', {})),
+};
+/* 구버전(분/아이템수익) 기록 → 소재비/솔조각 구조로 변환 */
+state.hunts = state.hunts.map(h=>{
+  if(h.sojaebi!==undefined) return h;
+  return {id:h.id, date:h.date, sojaebi:h.minutes?Math.round(h.minutes/30):0,
+          meso:(h.meso||0)+(h.item||0), sol:0, memo:h.memo||''};
+});
+const _n = new Date();
+(function(){ /* 구버전 보스 계산기 선택 → 이번 주차/이번 달 기록으로 이관 */
+  const old = store.get('bossCalc', null);
+  if(!old) return;
+  try{
+    const wk = (d=>{d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()-4+7)%7));
+      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})(new Date());
+    const mk = new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
+    const bw = store.get('bossWeeks', {}), bm = store.get('bossMonths', {});
+    if(old.weekly && Object.values(old.weekly).some(x=>x&&x.diff) && !bw[wk]){ bw[wk]={weekly:old.weekly}; store.set('bossWeeks',bw); state.bossWeeks = bw; }
+    if(old.monthly && old.monthly.diff && !bm[mk]){ bm[mk]=old.monthly; store.set('bossMonths',bm); state.bossMonths = bm; }
+    store.set('bossCalc', null);
+  }catch(e){}
+})();
+let calY = _n.getFullYear(), calM = _n.getMonth();
+let selectedDay = todayStr0(_n);
+function todayStr0(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function huntNet(h){ return h.meso + (h.sol||0)*state.solPrice; }
+
+/* 결정석 가격 출처: matsu1207.tistory.com/757 (2026-06-18 기준) */
+const BOSS_WEEKLY = [
+ {id:'mayrin',    name:'메이린',    diffs:{hard:600000000, normal:300000000}, noCount:true, event:true},
+ {id:'jupiter',   name:'유피테르',  diffs:{hard:4845000000, normal:1615000000}},
+ {id:'baldrix',   name:'발드릭스',  diffs:{hard:3078000000, normal:1368000000}},
+ {id:'limbo',     name:'림보',      diffs:{hard:2385000000, normal:1026000000}},
+ {id:'hyungsung', name:'흉성',      diffs:{hard:2678000000, normal:625000000}},
+ {id:'kaling',    name:'카링',      diffs:{extreme:5387000000, hard:1739000000, normal:678000000, easy:377000000}},
+ {id:'adversary', name:'대적자',    diffs:{extreme:4712000000, hard:1435000000, normal:560000000, easy:308000000}},
+ {id:'kalos',     name:'칼로스',    diffs:{extreme:4104000000, chaos:1273000000, normal:505000000, easy:280000000}},
+ {id:'seren',     name:'세렌',      diffs:{extreme:2835000000, hard:356000000, normal:239000000}},
+ {id:'jinhilla',  name:'진 힐라',   diffs:{hard:106000000, normal:71200000}},
+ {id:'dunkel',    name:'듄켈',      diffs:{hard:94400000, normal:47500000}},
+ {id:'dusk',      name:'더스크',    diffs:{chaos:69800000, normal:44000000}},
+ {id:'gaenseul',  name:'가엔슬',    diffs:{chaos:75100000, normal:25500000}},
+ {id:'will',      name:'윌',        diffs:{hard:77100000, normal:41100000, easy:32300000}},
+ {id:'lucid',     name:'루시드',    diffs:{hard:62900000, normal:35600000, easy:29800000}},
+ {id:'damien',    name:'데미안',    diffs:{hard:48900000, normal:17500000}},
+ {id:'suu',       name:'스우',      diffs:{extreme:574000000, hard:51500000, normal:16700000}},
+ {id:'papulatus', name:'파풀라투스', diffs:{chaos:13100000}},
+ {id:'vellum',    name:'벨룸',      diffs:{chaos:9280000}},
+ {id:'queen',     name:'블러디퀸',  diffs:{chaos:8140000}},
+ {id:'pierre',    name:'피에르',    diffs:{chaos:8170000}},
+ {id:'vonbon',    name:'반반',      diffs:{chaos:8150000}},
+ {id:'magnus',    name:'매그너스',  diffs:{hard:8560000}},
+ {id:'zakum',     name:'자쿰',      diffs:{chaos:8080000}},
+];
+const BOSS_MONTHLY = [
+ {id:'blackmage', name:'검은 마법사', diffs:{extreme:8740000000, hard:665000000}},
+];
+const DIFF_LABEL = {extreme:'EXTREME', chaos:'CHAOS', hard:'HARD', normal:'NORMAL', easy:'EASY'};
+const DIFF_ORDER = ['extreme','chaos','hard','normal','easy'];
+
+const dsOf = (y,m,d) => y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+const monthKey = (y,m) => y+'-'+String(m+1).padStart(2,'0');
+function shiftDs(ds, days){ const d=new Date(ds+'T00:00:00'); d.setDate(d.getDate()+days); return dsOf(d.getFullYear(),d.getMonth(),d.getDate()); }
+/* 해당 달에 속한 목요일(=주차 시작일) 목록 */
+function monthThursdays(y,m){
+  const out=[], dim=new Date(y,m+1,0).getDate();
+  for(let d=1;d<=dim;d++) if(new Date(y,m,d).getDay()===4) out.push(dsOf(y,m,d));
+  return out;
+}
+/* 오늘이 속한 사이클의 목요일 (사이클: 목 00:00 ~ 수 23:59) */
+function currentCycleThu(){
+  const d=new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate()-((d.getDay()-4+7)%7));
+  return dsOf(d.getFullYear(),d.getMonth(),d.getDate());
+}
+function weekRangeLabel(thuDs){
+  const wed = shiftDs(thuDs,6);
+  const f = ds => { const [,m,d]=ds.split('-'); return `${+m}.${+d}`; };
+  return `${f(thuDs)}(목) ~ ${f(wed)}(수)`;
+}
+function charTotal(ch){
+  let sum=0, count=0;
+  for(const b of BOSS_WEEKLY){
+    const sel = ch.weekly[b.id];
+    if(sel && sel.diff && b.diffs[sel.diff]!=null){
+      sum += b.noCount ? b.diffs[sel.diff] : Math.floor(b.diffs[sel.diff]/(sel.party||1));
+      if(!b.noCount) count++;
+    }
+  }
+  return {sum, count};
+}
+function monthChars(mk){
+  const rec = state.bossMonths[mk];
+  return (rec && rec.chars && rec.chars.length) ? rec.chars : [{id:'main', name:'주 캐릭터', diff:null, party:1}];
+}
+function monthBossSum(mk){
+  let sum = 0;
+  for(const ch of monthChars(mk)){
+    if(ch.diff && BOSS_MONTHLY[0].diffs[ch.diff]!=null) sum += Math.floor(BOSS_MONTHLY[0].diffs[ch.diff]/(ch.party||1));
+  }
+  return sum;
+}
+function ensureBossMChar(){
+  const mk = monthKey(bossY, bossM);
+  let rec = state.bossMonths[mk];
+  if(!rec || !rec.chars){ rec = {chars:[]}; state.bossMonths[mk] = rec; }
+  let ch = rec.chars.find(c=>c.id===bossCharSel);
+  if(!ch){
+    ch = {id: bossCharSel||'main', name:(bossCharSel==='main'||!bossCharSel)?'주 캐릭터':'캐릭터', diff:null, party:1};
+    rec.chars.push(ch);
+  }
+  return ch;
+}
+function weekChars(key){
+  const rec = state.bossWeeks[key];
+  return (rec && rec.chars && rec.chars.length) ? rec.chars : [{id:'main', name:'주 캐릭터', weekly:{}}];
+}
+function weekTotal(key){
+  let sum=0, count=0;
+  for(const ch of weekChars(key)){ const t=charTotal(ch); sum+=t.sum; count+=t.count; }
+  return {sum, count};
+}
+function bossMonthTotal(y,m){
+  let weekly=0, count=0;
+  for(const wk of monthThursdays(y,m)){ const t=weekTotal(wk); weekly+=t.sum; count+=t.count; }
+  const mo = monthBossSum(monthKey(y,m));
+  return {weekly, count, monthly:mo, total:weekly+mo};
+}
+let bossY = _n.getFullYear(), bossM = _n.getMonth();
+let bossWeekSel = currentCycleThu();
+function bossMove(d){
+  bossM += d;
+  if(bossM<0){ bossM=11; bossY--; }
+  if(bossM>11){ bossM=0; bossY++; }
+  bossWeekSel = null;
+  renderBoss();
+}
+let bossCharSel = 'main';
+function selBossWeek(key){ bossWeekSel = key; renderBoss(); }
+function selBossChar(id){ bossCharSel = id; renderBoss(); }
+function ensureBossChar(){
+  let rec = state.bossWeeks[bossWeekSel];
+  if(!rec){ rec = {chars:[]}; state.bossWeeks[bossWeekSel] = rec; }
+  if(!rec.chars) rec.chars = [];
+  let ch = rec.chars.find(c=>c.id===bossCharSel);
+  if(!ch){
+    ch = {id: bossCharSel||'main', name: (bossCharSel==='main'||!bossCharSel)?'주 캐릭터':'캐릭터', weekly:{}};
+    rec.chars.push(ch);
+  }
+  return ch;
+}
+function bossSlotContainer(){
+  if(bossWeekSel==='month'){
+    const mk = monthKey(bossY, bossM);
+    let rec = state.bossMonths[mk];
+    if(!rec || !rec.chars){ rec = {chars:[]}; state.bossMonths[mk] = rec; }
+    return {rec, monthly:true};
+  }
+  let rec = state.bossWeeks[bossWeekSel];
+  if(!rec){ rec = {chars:[]}; state.bossWeeks[bossWeekSel] = rec; }
+  if(!rec.chars) rec.chars = [];
+  return {rec, monthly:false};
+}
+let bossCharMode = 'add', bossCharDefaultName = '';
+function addBossChar(){
+  const {rec} = bossSlotContainer();
+  bossCharMode = 'add';
+  bossCharDefaultName = `캐릭터 ${Math.max(rec.chars.length,1)+1}`;
+  openSheet('bosschar');
+  $('sheet-title').textContent = '캐릭터 슬롯 추가';
+  const f = $('f-name'); if(f){ f.focus(); f.select(); }
+}
+function renameBossChar(){
+  const {rec} = bossSlotContainer();
+  const ch = rec.chars.find(c=>c.id===bossCharSel); if(!ch) return;
+  bossCharMode = 'rename';
+  bossCharDefaultName = ch.name;
+  openSheet('bosschar');
+  $('sheet-title').textContent = '캐릭터 이름 변경';
+  const f = $('f-name'); if(f){ f.focus(); f.select(); }
+}
+let bossDelPending = 0;
+function deleteBossChar(){
+  const {rec, monthly} = bossSlotContainer();
+  const ch = rec.chars.find(c=>c.id===bossCharSel); if(!ch) return;
+  const now = Date.now();
+  if(now - bossDelPending > 4000){
+    bossDelPending = now;
+    toast(`'${ch.name}' 삭제하려면 4초 안에 한 번 더 누르세요`);
+    return;
+  }
+  bossDelPending = 0;
+  rec.chars = rec.chars.filter(c=>c.id!==bossCharSel);
+  bossCharSel = rec.chars.length ? rec.chars[0].id : 'main';
+  persist(); renderAll(); toast('슬롯을 삭제했어요');
+}
+function toggleBossDiff(kind, id, diff){
+  if(kind==='w'){
+    const ch = ensureBossChar();
+    const cur = ch.weekly[id] || {diff:null, party:1};
+    const def = BOSS_WEEKLY.find(x=>x.id===id);
+    if(cur.diff===diff){ cur.diff = null; }
+    else{
+      const selCount = BOSS_WEEKLY.filter(b=>!b.noCount && ch.weekly[b.id] && ch.weekly[b.id].diff).length;
+      if(!cur.diff && !(def&&def.noCount) && selCount>=12){ toast('캐릭터당 주간 결정석은 최대 12개까지 판매할 수 있어요'); return; }
+      cur.diff = diff;
+    }
+    ch.weekly[id] = cur;
+  }else{
+    const ch = ensureBossMChar();
+    ch.diff = ch.diff===diff ? null : diff;
+  }
+  persist(); renderAll();
+}
+function setBossParty(kind, id, v){
+  v = Math.min(6, Math.max(1, parseInt(v)||1));
+  if(kind==='w'){
+    const ch = ensureBossChar();
+    const cur = ch.weekly[id] || {diff:null, party:1};
+    cur.party = v; ch.weekly[id] = cur;
+  }else{
+    const ch = ensureBossMChar();
+    ch.party = v;
+  }
+  persist(); renderAll();
+}
+function copyPrevWeek(){
+  if(!bossWeekSel || bossWeekSel==='month') return;
+  const prev = state.bossWeeks[shiftDs(bossWeekSel,-7)];
+  const hasData = prev && prev.chars && prev.chars.some(c=>Object.values(c.weekly).some(x=>x.diff));
+  if(!hasData){ toast('이전 주차 기록이 없어요'); return; }
+  state.bossWeeks[bossWeekSel] = JSON.parse(JSON.stringify(prev));
+  bossCharSel = state.bossWeeks[bossWeekSel].chars[0].id;
+  persist(); renderAll(); toast('이전 주차 선택(캐릭터 포함)을 불러왔어요');
+}
+
+function persist(){ ['profile','goal','solPrice','cash','hunts','expenses','bossWeeks','bossMonths','nexonKey','mapleName','ocid','ocidName','levelLog','charImage'].forEach(k=>store.set(k, state[k])); }
+
+/* ---------- 유틸 ---------- */
+const $ = id => document.getElementById(id);
+const todayStr = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+function fmtMeso(n){
+  n = Math.round(n);
+  if(n===0) return '0';
+  const neg = n<0, eok = Math.abs(n)/1e8;
+  let s = eok>=0.095
+    ? (Math.round(eok*10)/10).toFixed(1).replace(/\.0$/,'')
+    : (Math.round(eok*100)/100).toFixed(2);
+  return (neg?'-':'')+s+'억';
+}
+function inThisMonth(ds){ const now=new Date(); const d=new Date(ds+'T00:00:00'); return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth(); }
+function inThisWeek(ds){
+  const now=new Date(); now.setHours(0,0,0,0);
+  const day=(now.getDay()+6)%7; const mon=new Date(now); mon.setDate(now.getDate()-day);
+  const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+  const d=new Date(ds+'T00:00:00');
+  return d>=mon && d<=sun;
+}
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),1800); }
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- 집계 ---------- */
+function dailyNet(ds){
+  const rev = state.hunts.filter(h=>h.date===ds).reduce((s,h)=>s+huntNet(h),0);
+  const led = state.expenses.filter(e=>e.date===ds);
+  const inc = led.filter(e=>e.kind==='in').reduce((s,e)=>s+e.amount,0);
+  const out = led.filter(e=>e.kind!=='in').reduce((s,e)=>s+e.amount,0);
+  return rev+inc-out;
+}
+function last7(){
+  const out=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    out.push({date:ds, label:String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'), net:dailyNet(ds)});
+  }
+  return out;
+}
+function monthNet(){
+  const rev = state.hunts.filter(h=>inThisMonth(h.date)).reduce((s,h)=>s+huntNet(h),0)
+            + bossMonthTotal(_n.getFullYear(), _n.getMonth()).total;
+  const led = state.expenses.filter(e=>inThisMonth(e.date));
+  const inc = led.filter(e=>e.kind==='in').reduce((s,e)=>s+e.amount,0);
+  const exp = led.filter(e=>e.kind!=='in').reduce((s,e)=>s+e.amount,0);
+  return {rev:rev+inc, exp, net:rev+inc-exp};
+}
+
+/* ---------- 대시보드 ---------- */
+function renderDashboard(){
+  $('side-name').textContent = state.profile.name + ' 님';
+  $('side-greet').textContent = state.profile.greet;
+  const av = $('side-avatar');
+  if(state.charImage){
+    av.innerHTML = `<img src="${state.charImage}" alt="${esc(state.mapleName||state.profile.name)}" style="width:100%;height:100%;object-fit:contain;object-position:center;transform:scale(2.1) translateY(2%);transform-origin:center">`;
+    av.style.background = '#fdeeda';
+  }else{
+    av.textContent = state.profile.name.slice(0,1) || '용';
+    av.style.background = '';
+  }
+  $('db-hello').textContent = state.profile.name + ' 님, 어서오세요 🍁';
+  const now = new Date();
+  $('db-date').textContent = `${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 · ${state.profile.greet}`;
+
+  const l7 = last7();
+  const avg = l7.reduce((s,d)=>s+d.net,0)/7;
+  $('db-avg7').textContent = fmtMeso(avg);
+  $('db-today').textContent = fmtMeso(dailyNet(todayStr()));
+  const m = monthNet();
+  if(state.goal>0){
+    const pct = m.net/state.goal*100;
+    $('db-goal').textContent = pct.toFixed(1)+'%';
+    $('db-goal-bar').style.width = Math.max(0, Math.min(100, pct))+'%';
+    const now2 = new Date();
+    const daysLeft = new Date(now2.getFullYear(), now2.getMonth()+1, 0).getDate() - now2.getDate() + 1;
+    const remain = Math.max(0, state.goal - m.net);
+    $('db-goal-hint').textContent = remain===0
+      ? `${fmtMeso(m.net)} / ${fmtMeso(state.goal)} · 🎉 달성!`
+      : `${fmtMeso(m.net)} / ${fmtMeso(state.goal)} · 하루 ${fmtMeso(remain/daysLeft)} 페이스`;
+  }else{
+    $('db-goal').textContent = '목표 미설정';
+    $('db-goal-bar').style.width = '0%';
+    $('db-goal-hint').textContent = '✏️ 설정을 눌러 입력하세요';
+  }
+  const activeDays = new Set([...state.hunts].filter(r=>inThisMonth(r.date)).map(r=>r.date)).size;
+  $('db-active').textContent = activeDays + '일';
+  $('db-total-hunt').textContent = '총 사냥 ' + state.hunts.length + '회';
+  $('db-chart-avg').textContent = '평균 ' + fmtMeso(avg);
+  drawChart(l7);
+
+  const expM = state.expenses.filter(e=>inThisMonth(e.date) && e.kind!=='in');
+  $('db-exp-total').textContent = fmtMeso(expM.reduce((s,e)=>s+e.amount,0));
+  if(expM.length===0){
+    $('db-exp-list').innerHTML = '<div class="empty">아직 지출이 없어요.</div>';
+  }else{
+    const byCat = {};
+    expM.forEach(e=>byCat[e.cat]=(byCat[e.cat]||0)+e.amount);
+    $('db-exp-list').innerHTML = Object.entries(byCat).map(([c,v])=>
+      `<div class="stat-line"><span>${esc(c)}</span><b>${fmtMeso(v)}</b></div>`).join('');
+  }
+
+  const recent = [...state.hunts].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
+  $('db-recent').innerHTML = recent.length===0
+    ? '<div class="empty">아직 사냥이 없어요. 첫 사냥을 추가해보세요!</div>'
+    : recent.map(h=>`<div class="mini-item">
+          <div><div class="t1">${h.date}</div><div class="t2">소재비 ${h.sojaebi}개 · 솔 조각 ${h.sol||0}개${h.memo?' · '+esc(h.memo):''}</div></div>
+          <div class="amt">${fmtMeso(huntNet(h))}</div></div>`).join('');
+
+  $('db-month-summary').innerHTML = `
+    <div class="stat-line"><span>총수익</span><b>${fmtMeso(m.rev)}</b></div>
+    <div class="stat-line"><span>지출</span><b style="color:var(--danger)">-${fmtMeso(m.exp)}</b></div>
+    <div class="stat-line"><span>순수익</span><b style="color:var(--accent-deep)">${fmtMeso(m.net)}</b></div>`;
+
+  /* 수익원 비중 */
+  const srcHunt = state.hunts.filter(h=>inThisMonth(h.date)).reduce((s,h)=>s+huntNet(h),0);
+  const srcBoss = bossMonthTotal(_n.getFullYear(), _n.getMonth()).total;
+  const srcInc = state.expenses.filter(e=>inThisMonth(e.date)&&e.kind==='in').reduce((s,e)=>s+e.amount,0);
+  const srcTotal = srcHunt+srcBoss+srcInc;
+  const srcBar = (name,v)=>{
+    const pct = srcTotal>0 ? Math.round(v/srcTotal*100) : 0;
+    return `<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>${name} ${pct}%</span><b>${fmtMeso(v)}</b></div>
+      <div class="progress-track" style="height:10px;margin:0"><div class="progress-fill" style="width:${pct}%"></div></div></div>`;
+  };
+  $('db-sources').innerHTML = srcTotal===0 ? '<div class="empty">이번 달 수익 기록이 없어요</div>'
+    : srcBar('사냥',srcHunt)+srcBar('보스',srcBoss)+srcBar('판매·기타 수입',srcInc);
+
+  /* 사냥 효율 */
+  const hm = state.hunts.filter(h=>inThisMonth(h.date));
+  const effSoj = Math.round(hm.reduce((s,h)=>s+h.sojaebi,0));
+  const effSol = hm.reduce((s,h)=>s+(h.sol||0),0);
+  const effMin = Math.round(effSoj*30);
+  $('db-eff').innerHTML = hm.length===0 ? '<div class="empty">이번 달 사냥 기록이 없어요</div>' : `
+    <div class="stat-line"><span>사냥 횟수</span><b>${hm.length}회</b></div>
+    <div class="stat-line"><span>총 소재비</span><b>${effSoj}개 (${Math.floor(effMin/60)}시간 ${effMin%60}분)</b></div>
+    <div class="stat-line"><span>솔 에르다 조각</span><b>${effSol}개 (${fmtMeso(effSol*state.solPrice)})</b></div>
+    <div class="stat-line"><span>소재비당 평균 수익</span><b>${effSoj>0?fmtMeso(srcHunt/effSoj):'-'}</b></div>
+    <div class="stat-line"><span>회당 평균 수익</span><b>${fmtMeso(srcHunt/hm.length)}</b></div>`;
+
+  /* 쌀 장부 요약 */
+  const cashMonth = state.cash.filter(e=>inThisMonth(e.date));
+  const cIn = cashMonth.filter(e=>e.kind==='in').reduce((s,e)=>s+e.amount,0);
+  const cOut = cashMonth.filter(e=>e.kind!=='in').reduce((s,e)=>s+e.amount,0);
+  const tIn = state.cash.filter(e=>e.kind==='in').reduce((s,e)=>s+e.amount,0);
+  const tOut = state.cash.filter(e=>e.kind!=='in').reduce((s,e)=>s+e.amount,0);
+  const tNet = tIn-tOut;
+  if(state.cash.length===0){
+    $('db-cash').innerHTML = '<div class="empty">아직 기록이 없어요.</div>';
+  }else{
+    const sumIO = cIn+cOut;
+    const inPct = sumIO>0 ? Math.round(cIn/sumIO*100) : 0;
+    $('db-cash').innerHTML = `
+      <div class="stat-line"><span>이번 달 수입</span><b style="color:var(--accent-deep)">+${fmtWon(cIn)}</b></div>
+      <div class="stat-line"><span>이번 달 지출</span><b style="color:var(--danger)">-${fmtWon(cOut)}</b></div>
+      ${sumIO>0?`<div class="progress-track" style="height:10px;position:relative;margin:10px 0 4px">
+        <div style="position:absolute;left:0;top:0;height:100%;width:${inPct}%;background:linear-gradient(90deg,#f2a54a,var(--accent-deep));border-radius:999px 0 0 999px"></div>
+        <div style="position:absolute;left:${inPct}%;top:0;height:100%;width:${100-inPct}%;background:#e0a196;border-radius:0 999px 999px 0"></div>
+      </div>
+      <div class="progress-note"><span style="color:var(--accent-deep)">●</span> 수입 ${inPct}% &nbsp;<span style="color:var(--danger)">●</span> 지출 ${100-inPct}%</div>`:''}
+      <div class="stat-line" style="margin-top:8px"><span>전체 누적 순손익</span><b style="color:${tNet>=0?'var(--accent-deep)':'var(--danger)'}">${tNet>0?'+':''}${fmtWon(tNet)}</b></div>`;
+  }
+
+  /* 레벨 요약 */
+  const lvDates = Object.keys(state.levelLog).sort();
+  if(lvDates.length===0){
+    $('db-level').innerHTML = '<div class="empty">레벨 탭에서 API 연동 후 기록을 불러오세요.</div>';
+  }else{
+    const lastDs = lvDates[lvDates.length-1];
+    const last = state.levelLog[lastDs];
+    const [,lm,ld2] = lastDs.split('-');
+    /* 최근 7일 미니 막대 */
+    const days = [];
+    for(let i=6;i>=0;i--){
+      const d = new Date(); d.setDate(d.getDate()-i);
+      const ds = dsOf(d.getFullYear(), d.getMonth(), d.getDate());
+      days.push({label:d.getDate(), v:levelDiff(ds)});
+    }
+    const vals = days.filter(x=>x.v!=null).map(x=>x.v);
+    let spark = '';
+    if(vals.length){
+      const W=280, H=64, padB=14;
+      const max = Math.max(...vals, 0), min = Math.min(...vals, 0);
+      const range = (max-min)||1;
+      const yOf = v => 4 + (H-4-padB)*((max-v)/range);
+      const y0 = yOf(0);
+      const bw = W/7;
+      spark = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="margin-top:10px" role="img" aria-label="최근 7일 성장">
+        <line x1="0" y1="${y0}" x2="${W}" y2="${y0}" stroke="#ead9bf"/>
+        ${days.map((x,i)=>{
+          if(x.v==null) return `<text x="${i*bw+bw/2}" y="${H-3}" font-size="9" fill="#cbb08a" text-anchor="middle">${x.label}</text>`;
+          const yT = Math.min(y0, yOf(x.v)), h = Math.max(2, Math.abs(y0-yOf(x.v)));
+          return `<rect x="${(i*bw+bw*0.2).toFixed(1)}" y="${yT.toFixed(1)}" width="${(bw*0.6).toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="${x.v>=0?'#e8973a':'#c0563a'}"/>
+            <text x="${i*bw+bw/2}" y="${H-3}" font-size="9" fill="#9a7b52" text-anchor="middle">${x.label}</text>`;
+        }).join('')}
+      </svg>`;
+    }
+    let sum7 = 0, has7 = false;
+    vals.forEach(v=>{ sum7+=v; has7=true; });
+    $('db-level').innerHTML = `
+      <div style="font-size:20px;font-weight:800">Lv. ${last.level} <span style="color:var(--accent-deep);font-size:16px">${last.rate.toFixed(3)}%</span> <span class="card-sub">(${+lm}.${+ld2} 기준)</span></div>
+      <div class="progress-track" style="height:8px"><div class="progress-fill" style="width:${Math.min(100,last.rate)}%"></div></div>
+      ${spark}
+      <div class="stat-line" style="margin-top:4px"><span>최근 7일 누적</span>${has7?`<b style="color:${sum7>=0?'var(--accent-deep)':'var(--danger)'}">${sum7>0?'+':''}${sum7.toFixed(3)}%</b>`:'<b style="color:var(--ink-soft)">-</b>'}</div>`;
+  }
+}
+
+function drawChart(data){
+  const W=640, H=230, padL=10, padR=10, padT=16, padB=30;
+  const max = Math.max(...data.map(d=>d.net), 1);
+  const min = Math.min(...data.map(d=>d.net), 0);
+  const range = (max-min)||1;
+  const x = i => padL + i*(W-padL-padR)/6;
+  const y = v => padT + (H-padT-padB)*(1-(v-min)/range);
+  const pts = data.map((d,i)=>[x(i),y(d.net)]);
+  const line = pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const area = line + ` L ${pts[6][0].toFixed(1)} ${H-padB} L ${pts[0][0].toFixed(1)} ${H-padB} Z`;
+  const zeroY = (min<0&&max>0) ? y(0) : null;
+  $('db-chart').innerHTML = `
+  <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="최근 7일 순수익 추이">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8973a" stop-opacity=".28"/><stop offset="1" stop-color="#e8973a" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${zeroY!==null?`<line x1="${padL}" y1="${zeroY}" x2="${W-padR}" y2="${zeroY}" stroke="#ead9bf" stroke-dasharray="4 4"/>`:''}
+    <path d="${area}" fill="url(#g)"/>
+    <path d="${line}" fill="none" stroke="#e8973a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    ${pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#fff" stroke="#d97f1e" stroke-width="2"/>`).join('')}
+    ${data.map((d,i)=>`<text x="${x(i)}" y="${H-9}" font-size="11" fill="#9a7b52" text-anchor="middle">${d.label}</text>`).join('')}
+    ${data.map((d,i)=>`<text x="${x(i)}" y="${y(d.net)-10}" font-size="10" fill="#b08a55" text-anchor="middle">${d.net!==0?fmtMeso(d.net):''}</text>`).join('')}
+  </svg>`;
+}
+
+/* ---------- 테이블 렌더 ---------- */
+function calMove(d){
+  calM += d;
+  if(calM<0){ calM=11; calY--; }
+  if(calM>11){ calM=0; calY++; }
+  renderRecords();
+}
+function selectDay(ds){ selectedDay = ds; renderRecords(); }
+function renderRecords(){
+  $('cal-title').textContent = `${calY}년 ${calM+1}월`;
+  const firstDow = new Date(calY, calM, 1).getDay();
+  const dim = new Date(calY, calM+1, 0).getDate();
+  const today = todayStr();
+  const mm = String(calM+1).padStart(2,'0');
+  let cells = '';
+  for(let i=0;i<firstDow;i++) cells += '<div class="cal-cell blank"></div>';
+  for(let d=1; d<=dim; d++){
+    const ds = `${calY}-${mm}-${String(d).padStart(2,'0')}`;
+    const hs = state.hunts.filter(h=>h.date===ds);
+    const net = hs.reduce((s,h)=>s+huntNet(h),0);
+    const soj = Math.round(hs.reduce((s,h)=>s+h.sojaebi,0));
+    cells += `<div class="cal-cell${hs.length?' has':''}${ds===today?' today':''}${ds===selectedDay?' sel':''}" onclick="selectDay('${ds}')">
+      <span class="d">${d}</span>
+      ${hs.length?`<div class="cnet">${fmtMeso(net)}</div><div class="csoj">소재비 ${soj}</div>`:''}
+    </div>`;
+  }
+  $('cal-grid-days').innerHTML = cells;
+
+  /* 선택한 날 상세 */
+  const [sy,sm,sd] = selectedDay.split('-');
+  $('day-title').textContent = `${+sm}월 ${+sd}일 기록`;
+  const dayHunts = state.hunts.filter(h=>h.date===selectedDay);
+  $('day-detail').innerHTML = dayHunts.length===0
+    ? '<div class="empty" style="padding:22px 12px">이 날의 기록이 없어요.<br>+ 기록을 눌러 추가하세요</div>'
+    : dayHunts.map(h=>`<div class="mini-item">
+        <div>
+          <div class="t1">${fmtMeso(huntNet(h))}</div>
+          <div class="t2">소재비 ${h.sojaebi}개 · 메소 ${fmtMeso(h.meso)} · 솔 조각 ${h.sol||0}개${h.memo?'<br>'+esc(h.memo):''}</div>
+        </div>
+        <button class="del" onclick="delRec('hunts','${h.id}')" aria-label="삭제">✕</button>
+      </div>`).join('');
+
+  /* 시세 */
+  if(document.activeElement!==$('sol-price')) $('sol-price').value = Math.round(state.solPrice/1e4);
+
+  /* 표시 중인 달 요약 */
+  $('cal-month-label').textContent = `${calM+1}월 요약`;
+  const monthHunts = state.hunts.filter(h=>h.date.startsWith(`${calY}-${mm}-`));
+  if(monthHunts.length===0){
+    $('cal-month-summary').innerHTML = '<div class="empty" style="padding:20px 12px">이 달의 사냥 기록이 없어요.</div>';
+  }else{
+    const soj = Math.round(monthHunts.reduce((s,h)=>s+h.sojaebi,0));
+    const sol = monthHunts.reduce((s,h)=>s+(h.sol||0),0);
+    const net = monthHunts.reduce((s,h)=>s+huntNet(h),0);
+    const min = Math.round(soj*30);
+    $('cal-month-summary').innerHTML = `
+      <div class="stat-line"><span>사냥 횟수</span><b>${monthHunts.length}회</b></div>
+      <div class="stat-line"><span>총 소재비</span><b>${soj}개 (${Math.floor(min/60)}시간 ${min%60}분)</b></div>
+      <div class="stat-line"><span>솔 에르다 조각</span><b>${sol}개</b></div>
+      <div class="stat-line"><span>소재비당 수익</span><b>${soj>0?fmtMeso(net/soj):'-'}</b></div>
+      <div class="stat-line"><span>총 수익</span><b style="color:var(--accent-deep)">${fmtMeso(net)}</b></div>`;
+  }
+}
+function saveSolPrice(){
+  const v = parseFloat($('sol-price').value);
+  if(isNaN(v)||v<0){ toast('시세를 확인하세요'); return; }
+  state.solPrice = Math.round(v*1e4);
+  persist(); renderAll(); toast('시세를 저장했어요 · 수익이 다시 계산됩니다');
+}
+let ledY = _n.getFullYear(), ledM = _n.getMonth();
+let ledgerSel = todayStr0(_n);
+function ledMove(d){
+  ledM += d;
+  if(ledM<0){ ledM=11; ledY--; }
+  if(ledM>11){ ledM=0; ledY++; }
+  renderExpenses();
+}
+function selLedDay(ds){ ledgerSel = ds; renderExpenses(); }
+const LED_CATS = {out:['구매','강화','소모','기타'], in:['판매','보상','기타']};
+function renderExpenses(){
+  $('led-title').textContent = `${ledY}년 ${ledM+1}월`;
+  const firstDow = new Date(ledY, ledM, 1).getDay();
+  const dim = new Date(ledY, ledM+1, 0).getDate();
+  const today = todayStr();
+  const mm = String(ledM+1).padStart(2,'0');
+  let cells = '';
+  for(let i=0;i<firstDow;i++) cells += '<div class="cal-cell blank"></div>';
+  for(let d=1; d<=dim; d++){
+    const ds = `${ledY}-${mm}-${String(d).padStart(2,'0')}`;
+    const led = state.expenses.filter(e=>e.date===ds);
+    const inc = led.filter(e=>e.kind==='in').reduce((s,e)=>s+e.amount,0);
+    const out = led.filter(e=>e.kind!=='in').reduce((s,e)=>s+e.amount,0);
+    const net = inc-out;
+    const has = led.length>0;
+    cells += `<div class="cal-cell${has?' has':''}${ds===today?' today':''}${ds===ledgerSel?' sel':''}" onclick="selLedDay('${ds}')">
+      <span class="d">${d}</span>
+      ${led.length?`<div class="cnet${net<0?' neg':''}">${net>0?'+':''}${fmtMeso(net)}</div><div class="csoj">${led.length}건</div>`:''}
+    </div>`;
+  }
+  $('led-grid-days').innerHTML = cells;
+
+  /* 선택한 날 상세 */
+  const [,sm,sd] = ledgerSel.split('-');
+  $('led-day-title').textContent = `${+sm}월 ${+sd}일`;
+  const dayLed = state.expenses.filter(e=>e.date===ledgerSel);
+  $('led-day-detail').innerHTML = dayLed.length===0
+    ? '<div class="empty" style="padding:18px 12px">이 날의 기록이 없어요</div>'
+    : dayLed.map(e=>`<div class="mini-item">
+        <div>
+          <div class="t1">${esc(e.title)||esc(e.cat)} <span class="tag" style="font-size:10px;padding:1px 7px">${esc(e.cat)}</span></div>
+          <div class="t2">${e.kind==='in'?'수입':'지출'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <div class="amt" style="${e.kind==='in'?'color:var(--accent-deep)':'color:var(--danger)'}">${e.kind==='in'?'+':'-'}${fmtMeso(e.amount)}</div>
+          <button class="del" onclick="delRec('expenses','${e.id}')" aria-label="삭제">✕</button>
+        </div>
+      </div>`).join('');
+
+  /* 표시 중인 달 요약 */
+  $('led-month-label').textContent = `${ledM+1}월 요약`;
+  const monthLed = state.expenses.filter(e=>e.date.startsWith(`${ledY}-${mm}-`));
+  const mInc = monthLed.filter(e=>e.kind==='in').reduce((s,e)=>s+e.amount,0);
+  const mOut = monthLed.filter(e=>e.kind!=='in').reduce((s,e)=>s+e.amount,0);
+  $('led-month-summary').innerHTML = `
+    <div class="stat-line"><span>수입</span><b style="color:var(--accent-deep)">+${fmtMeso(mInc)}</b></div>
+    <div class="stat-line"><span>지출</span><b style="color:var(--danger)">-${fmtMeso(mOut)}</b></div>
+    <div class="stat-line"><span>순액</span><b>${fmtMeso(mInc-mOut)}</b></div>`;
+}
+function openLedger(kind){
+  openSheet('exp');
+  $('f-kind').value = kind;
+  updLedgerCats();
+}
+function updLedgerCats(){
+  const kind = $('f-kind').value;
+  $('f-cat').innerHTML = LED_CATS[kind].map(c=>`<option>${c}</option>`).join('');
+  updLedgerPreview();
+}
+function updLedgerPreview(){
+  const p = $('f-preview'); if(!p) return;
+  const kind = $('f-kind') ? $('f-kind').value : 'out';
+  p.textContent = (kind==='in'?'+':'-') + fmtMeso(num('f-amt')*1e8);
+}
+function fmtWon(n){ return (n<0?'-':'')+Math.abs(Math.round(n)).toLocaleString('ko-KR')+'원'; }
+function fmtWonShort(n){
+  const neg = n<0, a = Math.abs(Math.round(n));
+  if(a>=1e4) return (neg?'-':'')+(Math.round(a/1e3)/10).toFixed(1).replace(/\.0$/,'')+'만원';
+  return (neg?'-':'')+a.toLocaleString('ko-KR')+'원';
+}
+let cashY = _n.getFullYear(), cashM = _n.getMonth();
+let cashSel = todayStr0(_n);
+const CASH_CATS = {out:['캐시 충전','쌀 구매','기타'], in:['쌀 판매','기타']};
+function cashMove(d){
+  cashM += d;
+  if(cashM<0){ cashM=11; cashY--; }
+  if(cashM>11){ cashM=0; cashY++; }
+  renderCash();
+}
+function selCashDay(ds){ cashSel = ds; renderCash(); }
+function renderCash(){
+  $('cash-title').textContent = `${cashY}년 ${cashM+1}월`;
+  const firstDow = new Date(cashY, cashM, 1).getDay();
+  const dim = new Date(cashY, cashM+1, 0).getDate();
+  const today = todayStr();
+  const mm = String(cashM+1).padStart(2,'0');
+  let cells = '';
+  for(let i=0;i<firstDow;i++) cells += '<div class="cal-cell blank"></div>';
+  for(let d=1; d<=dim; d++){
+    const ds = `${cashY}-${mm}-${String(d).padStart(2,'0')}`;
+    const led = state.cash.filter(e=>e.date===ds);
+    const inc = led.filter(e=>e.kind==='in').reduce((s,e)=>s+e.amount,0);
+    const out = led.filter(e=>e.kind!=='in').reduce((s,e)=>s+e.amount,0);
+    const net = inc-out;
+    cells += `<div class="cal-cell${led.length?' has':''}${ds===today?' today':''}${ds===cashSel?' sel':''}" onclick="selCashDay('${ds}')">
+      <span class="d">${d}</span>
+      ${led.length?`<div class="cnet${net<0?' neg':''}">${net>0?'+':''}${fmtWonShort(net)}</div><div class="csoj">${led.length}건</div>`:''}
+    </div>`;
+  }
+  $('cash-grid-days').innerHTML = cells;
+
+  const [,sm,sd] = cashSel.split('-');
+  $('cash-day-title').textContent = `${+sm}월 ${+sd}일`;
+  const dayLed = state.cash.filter(e=>e.date===cashSel);
+  $('cash-day-detail').innerHTML = dayLed.length===0
+    ? '<div class="empty" style="padding:18px 12px">이 날의 기록이 없어요</div>'
+    : dayLed.map(e=>`<div class="mini-item">
+        <div>
+          <div class="t1">${esc(e.title)||esc(e.cat)} <span class="tag" style="font-size:10px;padding:1px 7px">${esc(e.cat)}</span></div>
+          <div class="t2">${e.kind==='in'?'수입':'지출'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <div class="amt" style="${e.kind==='in'?'color:var(--accent-deep)':'color:var(--danger)'}">${e.kind==='in'?'+':'-'}${fmtWon(e.amount)}</div>
+          <button class="del" onclick="delRec('cash','${e.id}')" aria-label="삭제">✕</button>
+        </div>
+      </div>`).join('');
+
+  $('cash-month-label').textContent = `${cashM+1}월 요약`;
+  const monthLed = state.cash.filter(e=>e.date.startsWith(`${cashY}-${mm}-`));
+  const mInc = monthLed.filter(e=>e.kind==='in').reduce((s,e)=>s+e.amount,0);
+  const mOut = monthLed.filter(e=>e.kind!=='in').reduce((s,e)=>s+e.amount,0);
+  $('cash-month-summary').innerHTML = `
+    <div class="stat-line"><span>수입</span><b style="color:var(--accent-deep)">+${fmtWon(mInc)}</b></div>
+    <div class="stat-line"><span>지출</span><b style="color:var(--danger)">-${fmtWon(mOut)}</b></div>
+    <div class="stat-line"><span>순액</span><b>${fmtWon(mInc-mOut)}</b></div>`;
+
+  const tInc = state.cash.filter(e=>e.kind==='in').reduce((s,e)=>s+e.amount,0);
+  const tOut = state.cash.filter(e=>e.kind!=='in').reduce((s,e)=>s+e.amount,0);
+  const tNet = tInc-tOut;
+  $('cash-total-summary').innerHTML = `
+    <div class="stat-line"><span>총 투자 (지출)</span><b style="color:var(--danger)">-${fmtWon(tOut)}</b></div>
+    <div class="stat-line"><span>총 회수 (수입)</span><b style="color:var(--accent-deep)">+${fmtWon(tInc)}</b></div>
+    <div class="stat-line"><span>순손익</span><b style="color:${tNet>=0?'var(--accent-deep)':'var(--danger)'}">${tNet>0?'+':''}${fmtWon(tNet)}</b></div>`;
+}
+function openCash(kind){
+  openSheet('cash');
+  $('f-kind').value = kind;
+  updCashCats();
+}
+function updCashCats(){
+  const kind = $('f-kind').value;
+  $('f-cat').innerHTML = CASH_CATS[kind].map(c=>`<option>${c}</option>`).join('');
+  updCashPreview();
+}
+function updCashCalc(){
+  const q = num('f-qty'), p = num('f-price');
+  if(q>0 && p>0){
+    $('f-amt').value = Math.round(q*p);
+    if(!$('f-title').value.trim()){
+      const cat = $('f-cat').value;
+      const verb = $('f-kind').value==='in' ? '판매' : '구매';
+      $('f-title').value = `쌀 ${verb} (${q}억, 억당 ${p.toLocaleString('ko-KR')}원)`;
+    }
+  }
+  updCashPreview();
+}
+function updCashPreview(){
+  const p = $('f-preview'); if(!p) return;
+  const kind = $('f-kind') ? $('f-kind').value : 'out';
+  p.textContent = (kind==='in'?'+':'-') + fmtWon(num('f-amt'));
+}
+let curBossChar = null;
+function bossRow(kind, b){
+  const sel = kind==='w'
+    ? (curBossChar ? curBossChar.weekly[b.id] : null)
+    : curBossChar;
+  const diff = sel && sel.diff, party = (sel && sel.party) || 1;
+  const price = (diff && b.diffs[diff]!=null) ? (b.noCount ? b.diffs[diff] : Math.floor(b.diffs[diff]/party)) : 0;
+  const pills = DIFF_ORDER.filter(d=>b.diffs[d]!=null).map(d=>
+    `<button class="diff d-${d}${diff===d?' on':''}" onclick="toggleBossDiff('${kind}','${b.id}','${d}')">${diff===d?'✓ ':''}${DIFF_LABEL[d]}</button>`).join('');
+  const opts = [1,2,3,4,5,6].map(n=>`<option value="${n}"${party===n?' selected':''}>${n}</option>`).join('');
+  return `<tr>
+    <td class="strong" style="white-space:nowrap">${b.name}${b.event?' <span class="tag" style="font-size:10px;padding:1px 7px">이벤트</span>':''}</td>
+    <td>${pills}</td>
+    <td class="num">${b.noCount?'<span class="sub">—</span>':`<select class="party-sel" onchange="setBossParty('${kind}','${b.id}',this.value)">${opts}</select>`}</td>
+    <td class="num${price?' strong':''}" style="white-space:nowrap">${price?fmtMeso(price):'0'}</td>
+  </tr>`;
+}
+function renderBoss(){
+  $('bs-month-title').textContent = `${bossY}년 ${bossM+1}월`;
+  const weeks = monthThursdays(bossY, bossM);
+  if(bossWeekSel!=='month' && !weeks.includes(bossWeekSel)){
+    const cur = currentCycleThu();
+    bossWeekSel = weeks.includes(cur) ? cur : weeks[0];
+  }
+  const mt = bossMonthTotal(bossY, bossM);
+  $('bs-weekly').textContent = fmtMeso(mt.weekly);
+  $('bs-count').textContent = mt.count + '개';
+  $('bs-monthly').textContent = fmtMeso(mt.monthly);
+  $('bs-total-label').textContent = `${bossM+1}월 수익 합계 (주간 ${weeks.length}주 + 월간)`;
+  $('bs-total').textContent = fmtMeso(mt.total);
+
+  /* 주차 탭 */
+  $('bs-week-tabs').innerHTML = weeks.map((wk,i)=>{
+    const t = weekTotal(wk);
+    return `<button class="wk-tab${bossWeekSel===wk?' on':''}" onclick="selBossWeek('${wk}')">
+      <div class="w1">${i+1}주차${wk===currentCycleThu()?' · 이번 주':''}</div>
+      <div class="w2">${weekRangeLabel(wk)}</div>
+      <div class="w3">${t.count?fmtMeso(t.sum):'미기록'}</div>
+    </button>`;
+  }).join('') + (()=>{
+    const mo = monthBossSum(monthKey(bossY,bossM));
+    return `<button class="wk-tab${bossWeekSel==='month'?' on':''}" onclick="selBossWeek('month')">
+      <div class="w1">월간 보스</div>
+      <div class="w2">${bossM+1}.1 ~ ${bossM+1}.${new Date(bossY,bossM+1,0).getDate()} · 검은 마법사</div>
+      <div class="w3">${mo?fmtMeso(mo):'미기록'}</div>
+    </button>`;
+  })();
+
+  /* 선택된 주차/월간 테이블 */
+  const head = `<table><thead><tr><th style="width:110px">보스</th><th>난이도</th><th class="num" style="width:70px">파티원</th><th class="num" style="width:130px">가격</th></tr></thead><tbody>`;
+  if(bossWeekSel==='month'){
+    const mk = monthKey(bossY, bossM);
+    const chars = monthChars(mk);
+    if(!chars.find(c=>c.id===bossCharSel)) bossCharSel = chars[0].id;
+    curBossChar = chars.find(c=>c.id===bossCharSel);
+    const moSum = monthBossSum(mk);
+    $('bs-sel-title').textContent = `${bossM+1}월 월간 보스 · ${curBossChar.name}`;
+    $('bs-sel-sub').textContent = `${bossY}.${bossM+1}.1 00:00 ~ 말일 23:59 · 캐릭터 ${chars.length}명 합산 ${fmtMeso(moSum)} · 가격 기준 2026-06-18`;
+    $('bs-actions').innerHTML = `
+      <button class="btn ghost" style="padding:8px 12px;font-size:12px" onclick="renameBossChar()">이름 변경</button>
+      <button class="btn ghost" style="padding:8px 12px;font-size:12px" onclick="deleteBossChar()">슬롯 삭제</button>`;
+    const chips = chars.map(c=>{
+      const v = (c.diff && BOSS_MONTHLY[0].diffs[c.diff]!=null) ? Math.floor(BOSS_MONTHLY[0].diffs[c.diff]/(c.party||1)) : 0;
+      return `<button class="chip${c.id===bossCharSel?' on':''}" onclick="selBossChar('${c.id}')">${esc(c.name)} <span style="opacity:.75;font-weight:600">${v?fmtMeso(v):'미기록'}</span></button>`;
+    }).join('') + `<button class="chip" onclick="addBossChar()">＋ 캐릭터 추가</button>`;
+    $('bs-table').innerHTML = `<div class="chips" style="margin:6px 0 12px">${chips}</div>` + head + BOSS_MONTHLY.map(b=>bossRow('m',b)).join('') + '</tbody></table>';
+  }else{
+    const idx = weeks.indexOf(bossWeekSel);
+    const chars = weekChars(bossWeekSel);
+    if(!chars.find(c=>c.id===bossCharSel)) bossCharSel = chars[0].id;
+    curBossChar = chars.find(c=>c.id===bossCharSel);
+    const ct = charTotal(curBossChar);
+    const wt = weekTotal(bossWeekSel);
+    $('bs-sel-title').textContent = `${bossM+1}월 ${idx+1}주차 · ${curBossChar.name} 결정 ${ct.count}/12`;
+    $('bs-sel-sub').textContent = `${weekRangeLabel(bossWeekSel)} · 캐릭터 ${chars.length}명 합산 ${fmtMeso(wt.sum)} · 가격 기준 2026-06-18`;
+    $('bs-actions').innerHTML = `
+      <button class="btn ghost" style="padding:8px 12px;font-size:12px" onclick="renameBossChar()">이름 변경</button>
+      <button class="btn ghost" style="padding:8px 12px;font-size:12px" onclick="deleteBossChar()">슬롯 삭제</button>
+      <button class="btn ghost" style="padding:8px 12px;font-size:12px" onclick="copyPrevWeek()">이전 주차 불러오기</button>`;
+    const chips = chars.map(c=>{
+      const t = charTotal(c);
+      return `<button class="chip${c.id===bossCharSel?' on':''}" onclick="selBossChar('${c.id}')">${esc(c.name)} <span style="opacity:.75;font-weight:600">${t.count}/12</span></button>`;
+    }).join('') + `<button class="chip" onclick="addBossChar()">＋ 캐릭터 추가</button>`;
+    $('bs-table').innerHTML = `<div class="chips" style="margin:6px 0 12px">${chips}</div>` + head + BOSS_WEEKLY.map(b=>bossRow('w',b)).join('') + '</tbody></table>';
+  }
+}
+async function nxGet(path, params){
+  const url = new URL('https://open.api.nexon.com'+path);
+  Object.entries(params).forEach(([k,v])=>{ if(v!=null && v!=='') url.searchParams.set(k,v); });
+  const r = await fetch(url, {headers:{'x-nxopen-api-key':(state.nexonKey||'').trim()}});
+  const j = await r.json().catch(()=>null);
+  if(!r.ok) throw new Error((j&&j.error&&j.error.message)||('HTTP '+r.status));
+  return j;
+}
+async function ensureOcid(){
+  if(!(state.nexonKey||'').trim() || !(state.mapleName||'').trim())
+    throw new Error('설정 탭에서 API 키와 닉네임을 먼저 저장하세요');
+  if(state.ocid && state.ocidName===state.mapleName) return state.ocid;
+  const j = await nxGet('/maplestory/v1/id', {character_name: state.mapleName.trim()});
+  state.ocid = j.ocid; state.ocidName = state.mapleName; persist();
+  return j.ocid;
+}
+let lvFetching = false;
+const NX_MIN_DATE = '2023-12-21'; /* API가 데이터를 제공하는 최초 날짜 */
+async function fetchLevels(days){
+  if(lvFetching){ toast('이미 불러오는 중이에요'); return; }
+  try{
+    const ocid = await ensureOcid();
+    lvFetching = true;
+    const stat = $('lv-status');
+    let got = 0, fail = 0, consec = 0, note = '';
+    for(let i=1; days==null || i<=days; i++){
+      const d = new Date(); d.setDate(d.getDate()-i);
+      const ds = dsOf(d.getFullYear(), d.getMonth(), d.getDate());
+      if(ds < NX_MIN_DATE) break;
+      const cur = state.levelLog[ds];
+      if(cur && !cur.live){ consec = 0; continue; } /* 확정 기록은 건너뜀 → 이어받기 가능 */
+      if(stat) stat.textContent = `불러오는 중... ${ds}`;
+      try{
+        const b = await nxGet('/maplestory/v1/character/basic', {ocid, date: ds});
+        state.levelLog[ds] = {level:b.character_level, rate:parseFloat(b.character_exp_rate)||0};
+        if(b.character_image) state.charImage = b.character_image;
+        got++; consec = 0;
+      }catch(e){
+        fail++; consec++;
+        if(consec>=10){ note = ' · 연속 실패로 중단 (캐릭터 생성 이전이거나 호출 한도 초과)'; break; }
+      }
+      if(got && got%20===0) persist(); /* 중간 저장 */
+      await new Promise(r=>setTimeout(r, 130)); /* 호출 간격 */
+    }
+    persist(); renderAll();
+    if(stat) stat.textContent = '';
+    toast(`${got}일 불러옴` + (fail?` · 실패 ${fail}건`:'') + note);
+  }catch(e){
+    toast(e.message + (/fetch/i.test(e.message)?' · 네트워크/CORS 차단일 수 있어요':''));
+  }finally{
+    lvFetching = false;
+    const stat = $('lv-status'); if(stat) stat.textContent = '';
+  }
+}
+async function fetchLevelNow(){
+  try{
+    const ocid = await ensureOcid();
+    const b = await nxGet('/maplestory/v1/character/basic', {ocid});
+    state.levelLog[todayStr()] = {level:b.character_level, rate:parseFloat(b.character_exp_rate)||0, live:true};
+    if(b.character_image) state.charImage = b.character_image;
+    persist(); renderAll(); toast('현재 시점을 기록했어요');
+  }catch(e){
+    toast(e.message + (/fetch/i.test(e.message)?' · 네트워크/CORS 차단일 수 있어요':''));
+  }
+}
+function levelDiff(ds){
+  const cur = state.levelLog[ds], prev = state.levelLog[shiftDs(ds,-1)];
+  if(!cur || !prev) return null;
+  return (cur.level - prev.level)*100 + (cur.rate - prev.rate);
+}
+function fmtDiff(v){
+  if(v==null) return '<span style="color:var(--ink-soft)">전일 기록 없음</span>';
+  const c = v>0 ? 'var(--accent-deep)' : (v<0 ? 'var(--danger)' : 'var(--ink-soft)');
+  return `<b style="color:${c}">전일 대비 ${v>0?'+':''}${v.toFixed(3)}%</b>`;
+}
+let lvY = _n.getFullYear(), lvM = _n.getMonth();
+let lvSel = todayStr0(_n);
+function lvMove(d){
+  lvM += d;
+  if(lvM<0){ lvM=11; lvY--; }
+  if(lvM>11){ lvM=0; lvY++; }
+  renderLevel();
+}
+function selLvDay(ds){ lvSel = ds; renderLevel(); }
+function renderLevel(){
+  $('lv-title').textContent = `${lvY}년 ${lvM+1}월` + (state.mapleName?` · ${state.mapleName}`:'');
+  const firstDow = new Date(lvY, lvM, 1).getDay();
+  const dim = new Date(lvY, lvM+1, 0).getDate();
+  const today = todayStr();
+  const mm = String(lvM+1).padStart(2,'0');
+  let cells = '';
+  for(let i=0;i<firstDow;i++) cells += '<div class="cal-cell blank"></div>';
+  for(let d=1; d<=dim; d++){
+    const ds = `${lvY}-${mm}-${String(d).padStart(2,'0')}`;
+    const r = state.levelLog[ds];
+    const v = levelDiff(ds);
+    let body = '';
+    if(r){
+      body = `<div class="cnet" style="color:var(--ink)">Lv.${r.level}</div>`;
+      if(v!=null) body += `<div class="csoj" style="font-weight:800;color:${v>0?'var(--accent-deep)':(v<0?'var(--danger)':'var(--ink-soft)')}">${v>0?'+':''}${v.toFixed(1)}%</div>`;
+      else body += `<div class="csoj">${r.rate.toFixed(1)}%</div>`;
+    }
+    cells += `<div class="cal-cell${r?' has':''}${ds===today?' today':''}${ds===lvSel?' sel':''}" onclick="selLvDay('${ds}')">
+      <span class="d">${d}</span>${body}
+    </div>`;
+  }
+  $('lv-grid-days').innerHTML = cells;
+
+  /* 선택한 날 상세 */
+  const [,sm,sd] = lvSel.split('-');
+  $('lv-day-title').textContent = `${+sm}월 ${+sd}일`;
+  const rec = state.levelLog[lvSel];
+  if(!rec){
+    $('lv-day-detail').innerHTML = '<div class="empty" style="padding:18px 12px">이 날의 기록이 없어요.<br>레벨 기록을 불러오면 채워집니다.</div>';
+  }else{
+    const v = levelDiff(lvSel);
+    const prev = state.levelLog[shiftDs(lvSel,-1)];
+    /* 전일 구간: 같은 레벨이면 전일 %, 레벨업했으면 0부터 시작(전일은 이전 레벨) */
+    let base = null;
+    if(prev){
+      if(prev.level===rec.level) base = prev.rate;
+      else if(prev.level<rec.level) base = 0;
+    }
+    let barHtml, legend = '';
+    if(base!=null && rec.rate>=base){
+      const gain = rec.rate-base;
+      barHtml = `<div class="progress-track" style="height:10px;position:relative">
+        <div style="position:absolute;left:0;top:0;height:100%;width:${Math.min(100,base)}%;background:#dfc39a;border-radius:999px 0 0 999px"></div>
+        <div style="position:absolute;left:${Math.min(100,base)}%;top:0;height:100%;width:${Math.min(100-Math.min(100,base),gain)}%;background:linear-gradient(90deg,#f2a54a,var(--accent-deep));border-radius:${base>0?'0 999px 999px 0':'999px'}"></div>
+      </div>`;
+      legend = `<div class="progress-note" style="margin-top:4px"><span style="color:#c9a26a">●</span> 전일 ${prev.level<rec.level?`Lv.${prev.level} ${prev.rate.toFixed(3)}% (레벨업)`:base.toFixed(3)+'%'} &nbsp;<span style="color:var(--accent-deep)">●</span> 오늘 획득 +${gain.toFixed(3)}%p</div>`;
+    }else if(base!=null && rec.rate<base){
+      const loss = base-rec.rate;
+      barHtml = `<div class="progress-track" style="height:10px;position:relative">
+        <div style="position:absolute;left:0;top:0;height:100%;width:${Math.min(100,rec.rate)}%;background:linear-gradient(90deg,#f2a54a,var(--accent-deep));border-radius:999px 0 0 999px"></div>
+        <div style="position:absolute;left:${Math.min(100,rec.rate)}%;top:0;height:100%;width:${Math.min(100-Math.min(100,rec.rate),loss)}%;background:#e0a196;border-radius:0 999px 999px 0"></div>
+      </div>`;
+      legend = `<div class="progress-note" style="margin-top:4px"><span style="color:var(--accent-deep)">●</span> 오늘 ${rec.rate.toFixed(3)}% &nbsp;<span style="color:var(--danger)">●</span> 전일 대비 감소 -${loss.toFixed(3)}%p</div>`;
+    }else{
+      barHtml = `<div class="progress-track" style="height:10px"><div class="progress-fill" style="width:${Math.min(100,rec.rate)}%"></div></div>`;
+    }
+    $('lv-day-detail').innerHTML = `
+      <div style="font-size:24px;font-weight:800">Lv. ${rec.level} <span style="color:var(--accent-deep);font-size:19px">${rec.rate.toFixed(3)}%</span>${rec.live?' <span class="tag" style="font-size:10px;padding:1px 7px;vertical-align:middle">실시간</span>':''}</div>
+      ${barHtml}
+      <div class="progress-note">다음 레벨까지 ${(100-rec.rate).toFixed(3)}%</div>
+      ${legend}
+      <div style="margin-top:10px;font-size:14px">${fmtDiff(v)}</div>`;
+  }
+
+  /* 누적 상승 */
+  const sumRange = n => {
+    let s = 0, has = false;
+    for(let i=0;i<n;i++){
+      const d = new Date(); d.setDate(d.getDate()-i);
+      const v = levelDiff(dsOf(d.getFullYear(), d.getMonth(), d.getDate()));
+      if(v!=null){ s += v; has = true; }
+    }
+    return has ? s : null;
+  };
+  let mSum = 0, mHas = false;
+  for(let d=1; d<=dim; d++){
+    const v = levelDiff(`${lvY}-${mm}-${String(d).padStart(2,'0')}`);
+    if(v!=null){ mSum += v; mHas = true; }
+  }
+  const line = (label, v) => `<div class="stat-line"><span>${label}</span>${v==null?'<b style="color:var(--ink-soft)">-</b>':`<b style="color:${v>=0?'var(--accent-deep)':'var(--danger)'}">${v>0?'+':''}${v.toFixed(3)}%</b>`}</div>`;
+  $('lv-summary').innerHTML = line('최근 7일', sumRange(7)) + line('최근 14일', sumRange(14)) + line(`${lvM+1}월 합계`, mHas?mSum:null);
+
+  /* 성장 그래프 */
+  $('lv-chart-title').textContent = `${lvM+1}월 일별 성장 그래프`;
+  $('lv-chart-sum').textContent = mHas ? `누적 ${mSum>0?'+':''}${mSum.toFixed(2)}%` : '';
+  $('lv-chart').innerHTML = lvChartSvg(lvY, lvM);
+}
+function lvChartSvg(y, m){
+  const dim = new Date(y, m+1, 0).getDate();
+  const mm = String(m+1).padStart(2,'0');
+  const data = [];
+  let any = false;
+  for(let d=1; d<=dim; d++){
+    const ds = `${y}-${mm}-${String(d).padStart(2,'0')}`;
+    const v = levelDiff(ds);
+    const cur = state.levelLog[ds], prev = state.levelLog[shiftDs(ds,-1)];
+    data.push({d, v, lvup: !!(cur && prev && cur.level>prev.level)});
+    if(v!=null) any = true;
+  }
+  if(!any) return '<div class="empty">이 달의 성장 기록이 없어요. 레벨 기록을 불러오면 그래프가 표시됩니다.</div>';
+  const W=940, H=250, padL=52, padR=12, padT=20, padB=28;
+  const vals = data.filter(x=>x.v!=null).map(x=>x.v);
+  const max = Math.max(...vals, 0), min = Math.min(...vals, 0);
+  const range = (max-min) || 1;
+  const yOf = v => padT + (H-padT-padB)*((max-v)/range);
+  const y0 = yOf(0);
+  const bw = (W-padL-padR)/dim;
+  const avg = vals.reduce((a,b)=>a+b,0)/vals.length;
+  let bars = '', marks = '', labels = '';
+  data.forEach(({d,v,lvup})=>{
+    const cx = padL + (d-1)*bw + bw/2;
+    if(v!=null){
+      const yTop = Math.min(y0, yOf(v)), h = Math.max(2, Math.abs(y0 - yOf(v)));
+      bars += `<rect x="${(cx-bw*0.32).toFixed(1)}" y="${yTop.toFixed(1)}" width="${(bw*0.64).toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${v>=0?'#e8973a':'#c0563a'}" opacity="${v>=0?'0.9':'0.85'}"/>`;
+      if(lvup) marks += `<text x="${cx}" y="${(yOf(Math.max(v,0))-7).toFixed(1)}" font-size="12" text-anchor="middle" fill="#d97f1e">★</text>`;
+    }
+    if(d===1 || d%2===1) labels += `<text x="${cx}" y="${H-9}" font-size="10" fill="#9a7b52" text-anchor="middle">${d}</text>`;
+  });
+  const yLab = (v,yy) => `<text x="${padL-8}" y="${yy+3.5}" font-size="10" fill="#9a7b52" text-anchor="end">${v>0?'+':''}${v.toFixed(1)}%</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="일별 경험치 성장 그래프">
+    <line x1="${padL}" y1="${y0}" x2="${W-padR}" y2="${y0}" stroke="#ead9bf"/>
+    ${max>0?yLab(max,yOf(max)):''}${min<0?yLab(min,yOf(min)):''}${yLab(0,y0)}
+    <line x1="${padL}" y1="${yOf(avg)}" x2="${W-padR}" y2="${yOf(avg)}" stroke="#d97f1e" stroke-dasharray="5 5" opacity="0.55"/>
+    <text x="${W-padR}" y="${yOf(avg)-5}" font-size="10" fill="#d97f1e" text-anchor="end">평균 ${avg>0?'+':''}${avg.toFixed(2)}%</text>
+    ${bars}${marks}${labels}
+  </svg>`;
+}
+function renderSettings(){
+  $('set-name').value = state.profile.name;
+  $('set-greet').value = state.profile.greet;
+  if(document.activeElement!==$('set-nxkey')) $('set-nxkey').value = state.nexonKey || '';
+  if(document.activeElement!==$('set-nxname')) $('set-nxname').value = state.mapleName || '';
+}
+function saveNexon(){
+  state.nexonKey = $('set-nxkey').value.trim();
+  const name = $('set-nxname').value.trim();
+  if(name !== state.mapleName){ state.mapleName = name; state.ocid = ''; state.ocidName = ''; state.charImage = ''; }
+  persist(); renderLevel();
+  if(state.nexonKey && state.mapleName){
+    (async()=>{ try{
+      const ocid = await ensureOcid();
+      const b = await nxGet('/maplestory/v1/character/basic', {ocid});
+      if(b.character_image){ state.charImage = b.character_image; persist(); renderDashboard(); }
+    }catch(e){} })();
+  }
+  toast(state.nexonKey && state.mapleName ? 'API 연동 정보를 저장했어요' : '저장했어요 (키와 닉네임을 모두 입력해야 조회할 수 있어요)');
+}
+
+/* ---------- 삭제 ---------- */
+function delRec(key, id){
+  state[key] = state[key].filter(r=>r.id!==id);
+  persist(); renderAll(); toast('삭제했어요');
+}
+
+/* ---------- 입력 모달 ---------- */
+let sheetType = null;
+const SHEETS = {
+  hunt:{title:'사냥 추가', fields:()=>`
+    <div class="field-row">
+      <div class="field"><label>날짜</label><input type="date" id="f-date" value="${selectedDay}"></div>
+      <div class="field"><label>소재비 (개) · 1개 = 30분</label><input type="number" id="f-soj" min="0" step="1" placeholder="2" oninput="updHuntPreview()"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>메소 수익 (억 단위)</label><input type="number" id="f-meso" min="0" step="0.1" placeholder="1.3" oninput="updHuntPreview()"></div>
+      <div class="field"><label>솔 에르다 조각 (개)</label><input type="number" id="f-sol" min="0" step="1" placeholder="0" oninput="updHuntPreview()"></div>
+    </div>
+    <div class="field"><label>메모 (선택)</label><input type="text" id="f-memo" placeholder=""></div>
+    <div class="preview-line" id="f-preview">총 수익: 0</div>
+    <div class="note">메소 수익 1.3 = 1억 3,000만 메소 · 솔 조각 시세 ${fmtMeso(state.solPrice)}/개 적용</div>`},
+  exp:{title:'가계부 기록', fields:()=>`
+    <div class="field-row">
+      <div class="field"><label>유형</label><select id="f-kind" onchange="updLedgerCats()"><option value="out">지출 (−)</option><option value="in">수입 (+)</option></select></div>
+      <div class="field"><label>날짜</label><input type="date" id="f-date" value="${ledgerSel}"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>분류</label><select id="f-cat"></select></div>
+      <div class="field"><label>금액 (억 단위)</label><input type="number" id="f-amt" min="0" step="0.1" placeholder="1.3" oninput="updLedgerPreview()"></div>
+    </div>
+    <div class="field"><label>항목</label><input type="text" id="f-title" placeholder="예: 주문의 흔적 주문서 / 에테르넬 판매"></div>
+    <div class="preview-line" id="f-preview">-0</div>`},
+  bosschar:{title:'캐릭터 슬롯', fields:()=>`
+    <div class="field"><label>캐릭터 이름</label><input type="text" id="f-name" value="${esc(bossCharDefaultName)}" placeholder="캐릭터 이름"></div>`},
+  cash:{title:'쌀 장부 기록', fields:()=>`
+    <div class="field-row">
+      <div class="field"><label>유형</label><select id="f-kind" onchange="updCashCats()"><option value="out">지출 (−)</option><option value="in">수입 (+)</option></select></div>
+      <div class="field"><label>날짜</label><input type="date" id="f-date" value="${cashSel}"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>분류</label><select id="f-cat"></select></div>
+      <div class="field"><label>금액 (원)</label><input type="number" id="f-amt" min="0" step="100" placeholder="30000" oninput="updCashPreview()"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>메소 수량 (억) · 선택</label><input type="number" id="f-qty" min="0" step="1" placeholder="50" oninput="updCashCalc()"></div>
+      <div class="field"><label>억당 가격 (원) · 선택</label><input type="number" id="f-price" min="0" step="10" placeholder="1850" oninput="updCashCalc()"></div>
+    </div>
+    <div class="field"><label>항목</label><input type="text" id="f-title" placeholder="예: 제네시스 패스 구매"></div>
+    <div class="preview-line" id="f-preview">-0원</div>
+    <div class="note">메소 수량과 억당 가격을 입력하면 금액과 항목이 자동으로 채워집니다.</div>`},
+};
+function openSheet(type){
+  sheetType = type;
+  $('sheet-title').textContent = SHEETS[type].title;
+  $('sheet-fields').innerHTML = SHEETS[type].fields();
+  if(type==='exp') updLedgerCats();
+  if(type==='cash') updCashCats();
+  $('modal-bg').classList.add('open');
+  const first = document.querySelector('#sheet-fields input, #sheet-fields select');
+  if(first) first.focus();
+}
+function closeSheet(){ $('modal-bg').classList.remove('open'); sheetType=null; }
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape') closeSheet();
+  if(e.key==='Enter' && sheetType && e.target.tagName==='INPUT') submitSheet();
+});
+const num = id => { const v = parseFloat($(id)?.value); return isNaN(v)||v<0 ? 0 : v; };
+function updHuntPreview(){
+  const p = $('f-preview'); if(!p) return;
+  const total = num('f-meso')*1e8 + Math.round(num('f-sol'))*state.solPrice;
+  p.textContent = '총 수익: ' + fmtMeso(total);
+}
+function submitSheet(){
+  const dateEl = $('f-date');
+  const date = dateEl ? dateEl.value : null;
+  if(dateEl && !date){ toast('날짜를 입력하세요'); return; }
+  if(sheetType==='bosschar'){
+    const name = ($('f-name').value||'').trim();
+    if(!name){ toast('이름을 입력하세요'); return; }
+    const {rec, monthly} = bossSlotContainer();
+    if(bossCharMode==='rename'){
+      const ch = rec.chars.find(c=>c.id===bossCharSel);
+      if(ch) ch.name = name;
+    }else{
+      if(!rec.chars.length) rec.chars.push(monthly ? {id:'main', name:'주 캐릭터', diff:null, party:1} : {id:'main', name:'주 캐릭터', weekly:{}});
+      const ch = monthly ? {id:uid(), name, diff:null, party:1} : {id:uid(), name, weekly:{}};
+      rec.chars.push(ch);
+      bossCharSel = ch.id;
+    }
+    persist(); closeSheet(); renderAll(); toast(bossCharMode==='rename'?'이름을 변경했어요':'캐릭터 슬롯을 추가했어요');
+    return;
+  }
+  if(sheetType==='hunt'){
+    state.hunts.push({id:uid(), date, sojaebi:Math.round(num('f-soj')), meso:Math.round(num('f-meso')*1e8), sol:Math.round(num('f-sol')), memo:$('f-memo').value.trim()});
+    selectedDay = date;
+    const [y,m] = date.split('-'); calY = +y; calM = +m-1;
+  }else if(sheetType==='exp'){
+    if(num('f-amt')===0){ toast('금액을 입력하세요'); return; }
+    state.expenses.push({id:uid(), date, kind:$('f-kind').value, cat:$('f-cat').value, title:$('f-title').value.trim(), amount:Math.round(num('f-amt')*1e8)});
+    ledgerSel = date;
+    const [y,m] = date.split('-'); ledY = +y; ledM = +m-1;
+  }else if(sheetType==='cash'){
+    if(num('f-amt')===0){ toast('금액을 입력하세요'); return; }
+    state.cash.push({id:uid(), date, kind:$('f-kind').value, cat:$('f-cat').value, title:$('f-title').value.trim(), amount:Math.round(num('f-amt'))});
+    cashSel = date;
+    const [y,m] = date.split('-'); cashY = +y; cashM = +m-1;
+  }
+  persist(); closeSheet(); renderAll(); toast('저장했어요');
+}
+
+/* ---------- 목표/프로필/데이터 ---------- */
+function toggleGoalEdit(){
+  const edit = $('db-goal-edit'), view = $('db-goal-view');
+  const showing = edit.style.display!=='none';
+  if(showing){ edit.style.display='none'; view.style.display=''; $('db-goal-toggle').textContent='✏️ 설정'; }
+  else{
+    $('db-goal-input').value = state.goal ? +(state.goal/1e8).toFixed(1) : '';
+    edit.style.display=''; view.style.display='none'; $('db-goal-toggle').textContent='닫기';
+    $('db-goal-input').focus();
+  }
+}
+function saveGoalInline(){
+  const v = parseFloat($('db-goal-input').value);
+  state.goal = isNaN(v)||v<0 ? 0 : Math.round(v*1e8);
+  $('db-goal-edit').style.display='none';
+  $('db-goal-view').style.display='';
+  $('db-goal-toggle').textContent='✏️ 설정';
+  persist(); renderAll(); toast(state.goal?'목표를 저장했어요':'목표를 해제했어요');
+}
+function saveProfile(){
+  state.profile.name = $('set-name').value.trim() || '용사';
+  state.profile.greet = $('set-greet').value.trim() || '오늘도 재획 화이팅';
+  persist(); renderAll(); toast('프로필을 저장했어요');
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'maple_diary_backup.json';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function importData(ev){
+  const file = ev.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const d = JSON.parse(reader.result);
+      state = {
+        profile: d.profile||state.profile, goal: d.goal||0,
+        solPrice: d.solPrice||state.solPrice,
+        hunts: (d.hunts||[]).map(h=>h.sojaebi!==undefined?h:{id:h.id, date:h.date, sojaebi:h.minutes?Math.round(h.minutes/30):0, meso:(h.meso||0)+(h.item||0), sol:0, memo:h.memo||''}),
+        expenses: (d.expenses||[]).map(e=>e.kind?e:Object.assign({},e,{kind:'out'})),
+        cash: d.cash||[],
+        nexonKey: d.nexonKey||'', mapleName: d.mapleName||'', ocid: d.ocid||'', ocidName: d.ocidName||'', levelLog: d.levelLog||{}, charImage: d.charImage||'',
+        bossWeeks: d.bossWeeks||{},
+        bossMonths: (bm=>{ for(const k of Object.keys(bm)){ const v=bm[k]; if(v && !v.chars) bm[k]={chars:[{id:'main',name:'주 캐릭터',diff:v.diff||null,party:v.party||1}]}; } return bm; })(d.bossMonths||{}),
+      };
+      persist(); renderAll(); toast('데이터를 가져왔어요');
+    }catch(e){ toast('파일을 읽을 수 없어요'); }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+}
+let resetPending = 0;
+function resetData(){
+  const now = Date.now();
+  if(now - resetPending > 5000){
+    resetPending = now;
+    toast('모든 기록이 삭제됩니다. 5초 안에 한 번 더 누르면 초기화돼요');
+    return;
+  }
+  resetPending = 0;
+  store.clearAll();
+  state = {profile:{name:'용사',greet:'오늘도 재획 화이팅'}, goal:0, solPrice:5700000, cash:[], hunts:[], expenses:[], bossWeeks:{}, bossMonths:{}, nexonKey:'', mapleName:'', ocid:'', ocidName:'', levelLog:{}, charImage:''};
+  persist(); renderAll(); toast('초기화했어요');
+}
+
+/* ---------- 네비게이션 ---------- */
+function go(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  $('view-'+v).classList.add('active');
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.v===v));
+  window.scrollTo({top:0});
+  renderAll();
+}
+document.querySelectorAll('#nav button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.v)));
+
+function renderAll(){
+  renderDashboard(); renderRecords(); renderExpenses(); renderCash(); renderLevel(); renderBoss(); renderSettings();
+}
+renderAll();
+</script>
+</body>
+</html>
