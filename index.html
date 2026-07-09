@@ -215,6 +215,11 @@
   }
   .eq-row{cursor:pointer}
   .eq-row:hover{background:#fdf6ec}
+  /* 대시보드: 쌀 복구 바 */
+  #db-rec-pct{font-size:16px;font-weight:800;color:var(--accent-deep)}
+  .rec-bar-track{height:14px;border-radius:10px;background:#f1e6d6;overflow:hidden;margin:14px 0 8px}
+  .rec-bar-fill{height:100%;width:0%;border-radius:10px;background:linear-gradient(90deg,#f0b46a,#e08a3c);transition:width .4s ease}
+  .rec-hint{font-size:13px;color:var(--ink-soft)}
   .eq-need{font-size:12px;color:var(--ink-soft);font-weight:600}
   .eq-check{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin:2px 0 12px;cursor:pointer}
   .eq-check input{width:16px;height:16px;accent-color:var(--accent-deep);cursor:pointer}
@@ -356,7 +361,7 @@
       max-height:92vh;
     }
     .field input, .field select{font-size:16px;padding:12px}
-    #goal-input, #set-name, #set-greet, #set-nxkey, #set-nxname, #sol-price{font-size:16px}
+    #goal-input, #set-name, #set-greet, #set-nxkey, #set-nxname, #set-mkt, #set-rice, #set-sol{font-size:16px}
 
     .toast{bottom:calc(86px + env(safe-area-inset-bottom))}
     .btn-nav{width:38px;height:38px}
@@ -409,6 +414,15 @@
           <div class="page-sub" id="db-date"></div>
         </div>
         <button class="btn" onclick="openSheet('hunt')">+ 사냥 추가</button>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px" id="db-recovery-panel">
+        <div class="card-head">
+          <div><div class="card-title">🍚 쌀 복구 현황</div><div class="card-sub">쌀 장부 순투입액을 게임 재화 + 아이템 쌀 가치로 얼마나 메꿨는지</div></div>
+          <div class="card-aside" id="db-rec-pct"></div>
+        </div>
+        <div class="rec-bar-track"><div class="rec-bar-fill" id="db-rec-bar"></div></div>
+        <div id="db-rec-hint" class="rec-hint" style="margin-bottom:0"></div>
       </div>
 
       <div class="grid" style="margin-bottom:16px">
@@ -495,7 +509,6 @@
     <section class="view" id="view-records">
       <div class="page-head">
         <div><div class="page-title">사냥 기록</div><div class="page-sub">캘린더에서 날짜를 선택해 기록하세요 · 1 소재비 = 30분</div></div>
-        <button class="btn" onclick="openSheet('hunt')">+ 사냥 추가</button>
       </div>
       <div class="grid">
         <div class="panel span-8">
@@ -514,18 +527,9 @@
           <div class="panel" style="margin-bottom:16px">
             <div class="card-head">
               <div class="card-title" id="day-title"></div>
-              <a class="card-aside" onclick="openSheet('hunt')">+ 기록</a>
+              <a class="pill-in" onclick="openSheet('hunt')">+ 추가</a>
             </div>
             <div id="day-detail"></div>
-          </div>
-          <div class="panel" style="margin-bottom:16px">
-            <div class="card-title" style="margin-bottom:4px">솔 에르다 조각 시세</div>
-            <div class="card-sub" style="margin-bottom:10px">시세가 바뀌면 모든 기록의 수익이 다시 계산됩니다</div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <input type="number" id="sol-price" min="0" step="10" style="flex:1;border:1px solid var(--line);border-radius:13px;padding:10px 12px;font-size:14px;font-family:inherit;background:#fffdf9;color:var(--ink)">
-              <span style="font-size:13px;font-weight:700;color:var(--ink-soft);white-space:nowrap">만 메소 / 개</span>
-            </div>
-            <button class="btn ghost block" style="margin-top:10px" onclick="saveSolPrice()">시세 저장</button>
           </div>
           <div class="panel">
             <div class="card-title" style="margin-bottom:8px" id="cal-month-label"></div>
@@ -707,18 +711,18 @@
     <!-- ============ 장비 ============ -->
     <section class="view" id="view-equipment">
       <div class="page-head">
-        <div><div class="page-title">장비</div><div class="page-sub">아이템별 구매·재판매 시세를 기록해 현금 가치를 집계합니다 · 데모</div></div>
+        <div><div class="page-title">장비</div><div class="page-sub">아이템별 구매·재판매 시세를 기록해 쌀 가치를 집계합니다 · 데모</div></div>
         <button class="btn" onclick="openSheet('equip')">+ 아이템 추가</button>
       </div>
       <div class="grid" style="margin-bottom:16px;gap:10px">
         <div class="panel kpi span-3"><div class="label">총 구매 비용</div><div class="value" id="eq-sum-buy"></div></div>
-        <div class="panel kpi span-3"><div class="label">총 현금 가치</div><div class="value" id="eq-sum-cash"></div></div>
+        <div class="panel kpi span-3"><div class="label">총 쌀 가치</div><div class="value" id="eq-sum-cash"></div></div>
         <div class="panel kpi span-3"><div class="label">평가 손익</div><div class="value" id="eq-sum-pl"></div></div>
         <div class="panel kpi span-3"><div class="label">등록 아이템</div><div class="value" id="eq-sum-count"></div></div>
       </div>
       <div class="panel tbl-wrap">
         <div class="card-head">
-          <div><div class="card-title">등록 아이템</div><div class="card-sub">행을 클릭하면 재판매 시세를 입력할 수 있어요 · 현금 가치는 재판매가(없으면 구매가) 기준</div></div>
+          <div><div class="card-title">등록 아이템</div><div class="card-sub">행을 클릭하면 재판매 시세를 입력할 수 있어요 · 쌀 가치는 재판매가(없으면 구매가) 기준</div></div>
         </div>
         <div id="eq-table"></div>
       </div>
@@ -754,6 +758,24 @@
           </div>
           <button class="btn block" onclick="saveNexon()">API 연동 저장</button>
           <div class="note">레벨 탭의 경험치 기록에 사용됩니다. 키는 이 브라우저(로컬)에만 저장돼요.</div>
+        </div>
+        <div class="panel span-6">
+          <div class="card-title" style="margin-bottom:4px">시세 (전역 공유)</div>
+          <div class="card-sub" style="margin-bottom:12px">모든 탭의 쌀·수익 환산에 이 시세가 적용됩니다</div>
+          <div class="field">
+            <label for="set-mkt">메소마켓 (1억당 메포)</label>
+            <input type="number" id="set-mkt" min="0" step="10" placeholder="2600">
+          </div>
+          <div class="field">
+            <label for="set-rice">쌀 시세 (1억당 원)</label>
+            <input type="number" id="set-rice" min="0" step="10" placeholder="1900">
+          </div>
+          <div class="field">
+            <label for="set-sol">솔 에르다 조각 (만 메소 / 개)</label>
+            <input type="number" id="set-sol" min="0" step="10" placeholder="570">
+          </div>
+          <button class="btn block" onclick="savePrices()">시세 저장</button>
+          <div class="note">쌀 시세는 쌀 복구 환산에, 솔 시세는 사냥 수익 계산에 쓰입니다.</div>
         </div>
         <div class="panel span-6">
           <div class="card-title" style="margin-bottom:14px">데이터</div>
@@ -1128,6 +1150,49 @@ function monthNet(){
   const exp = led.filter(e=>e.kind!=='in').reduce((s,e)=>s+e.amount,0);
   return {rev:rev+inc, exp, net:rev+inc-exp};
 }
+/* 전체 누적 보스 메소(등록된 모든 주차/월 순회) */
+function bossAllTotal(){
+  let sum = 0;
+  for(const wk of Object.keys(state.bossWeeks)) sum += weekTotal(wk).sum;
+  for(const mk of Object.keys(state.bossMonths)) sum += monthBossSum(mk);
+  return sum;
+}
+/* 전체 누적 게임 메소: 사냥 + 보스 + 가계부(수입−지출) */
+function totalGameMeso(){
+  const hunt = state.hunts.reduce((s,h)=>s+huntNet(h),0);
+  const boss = bossAllTotal();
+  const inc = state.expenses.filter(e=>e.kind==='in').reduce((s,e)=>s+e.amount,0);
+  const out = state.expenses.filter(e=>e.kind!=='in').reduce((s,e)=>s+e.amount,0);
+  return hunt + boss + inc - out;
+}
+/* 쌀 복구 현황: 투입(쌀장부 지출−수입), 회수 가능(보유메소 쌀 환산 + 아이템 쌀 가치) */
+function recoveryStatus(){
+  const cashIn = state.cash.filter(c=>c.kind==='in').reduce((s,c)=>s+c.amount,0);
+  const cashOut = state.cash.filter(c=>c.kind!=='in').reduce((s,c)=>s+c.amount,0);
+  const invested = cashOut - cashIn;                 /* 순투입(원) */
+  const mesoEok = totalGameMeso()/1e8;
+  const mesoWon = Math.round(mesoEok * (state.cashPrice||0));  /* 보유 메소 쌀 환산(원) */
+  const itemWon = state.equips.reduce((s,e)=>s+equipCashValue(e).won, 0);
+  const recoverable = mesoWon + itemWon;
+  return {invested, mesoWon, itemWon, recoverable, remain: Math.max(0, invested-recoverable)};
+}
+function renderRecovery(){
+  const r = recoveryStatus();
+  if(r.invested<=0){
+    $('db-rec-pct').textContent = '';
+    $('db-rec-bar').style.width = '0%';
+    $('db-rec-hint').innerHTML = '쌀 장부에 지출을 기록하면 쌀 복구 현황이 표시됩니다.';
+    return;
+  }
+  const pct = r.recoverable/r.invested*100;
+  const done = r.recoverable>=r.invested;
+  $('db-rec-pct').textContent = pct.toFixed(1)+'%';
+  $('db-rec-bar').style.width = Math.max(0, Math.min(100, pct))+'%';
+  $('db-rec-bar').style.background = done ? 'var(--accent-deep)' : '';
+  $('db-rec-hint').innerHTML = done
+    ? `🎉 <b>${fmtWon(r.recoverable)}</b> 회수 가능 · 투입 ${fmtWon(r.invested)}을 모두 메꿨어요 (+${fmtWon(r.recoverable-r.invested)})`
+    : `현재 <b>${fmtWon(r.recoverable)}</b> 회수 가능 · 복구까지 <b style="color:#d0524a">${fmtWon(r.remain)}</b> 남았어요`;
+}
 
 /* ---------- 대시보드 ---------- */
 function renderDashboard(){
@@ -1170,6 +1235,8 @@ function renderDashboard(){
   $('db-total-hunt').textContent = '총 사냥 ' + state.hunts.length + '회';
   $('db-chart-avg').textContent = '평균 ' + fmtMeso(avg);
   drawChart(l7);
+
+  renderRecovery();
 
   const expM = state.expenses.filter(e=>inThisMonth(e.date) && e.kind!=='in');
   $('db-exp-total').textContent = fmtMeso(expM.reduce((s,e)=>s+e.amount,0));
@@ -1345,7 +1412,7 @@ function renderRecords(){
   $('day-title').textContent = `${+sm}월 ${+sd}일 기록`;
   const dayHunts = state.hunts.filter(h=>h.date===selectedDay);
   $('day-detail').innerHTML = dayHunts.length===0
-    ? '<div class="empty" style="padding:22px 12px">이 날의 기록이 없어요.<br>+ 기록을 눌러 추가하세요</div>'
+    ? '<div class="empty" style="padding:22px 12px">이 날의 기록이 없어요.<br>+ 추가를 눌러 기록하세요</div>'
     : dayHunts.map(h=>`<div class="mini-item">
         <div>
           <div class="t1">${fmtMeso(huntNet(h))}</div>
@@ -1353,9 +1420,6 @@ function renderRecords(){
         </div>
         <button class="del" onclick="delRec('hunts','${h.id}')" aria-label="삭제">✕</button>
       </div>`).join('');
-
-  /* 시세 */
-  if(document.activeElement!==$('sol-price')) $('sol-price').value = Math.round(state.solPrice/1e4);
 
   /* 표시 중인 달 요약 */
   $('cal-month-label').textContent = `${calM+1}월 요약`;
@@ -1374,12 +1438,6 @@ function renderRecords(){
       <div class="stat-line"><span>소재비당 수익</span><b>${soj>0?fmtMeso(net/soj):'-'}</b></div>
       <div class="stat-line"><span>총 수익</span><b style="color:var(--accent-deep)">${fmtMeso(net)}</b></div>`;
   }
-}
-function saveSolPrice(){
-  const v = parseFloat($('sol-price').value);
-  if(isNaN(v)||v<0){ toast('시세를 확인하세요'); return; }
-  state.solPrice = Math.round(v*1e4);
-  persist(); renderAll(); toast('시세를 저장했어요 · 수익이 다시 계산됩니다');
 }
 let ledY = _n.getFullYear(), ledM = _n.getMonth();
 let ledgerSel = todayStr0(_n);
@@ -1855,6 +1913,16 @@ function renderSettings(){
   $('set-greet').value = state.profile.greet;
   if(document.activeElement!==$('set-nxkey')) $('set-nxkey').value = state.nexonKey || '';
   if(document.activeElement!==$('set-nxname')) $('set-nxname').value = state.mapleName || '';
+  if(document.activeElement!==$('set-mkt')) $('set-mkt').value = state.mktPrice || '';
+  if(document.activeElement!==$('set-rice')) $('set-rice').value = state.cashPrice || '';
+  if(document.activeElement!==$('set-sol')) $('set-sol').value = Math.round(state.solPrice/1e4);
+}
+function savePrices(){
+  const mkt = parseFloat($('set-mkt').value), rice = parseFloat($('set-rice').value), sol = parseFloat($('set-sol').value);
+  if(!isNaN(mkt) && mkt>=0) state.mktPrice = Math.round(mkt);
+  if(!isNaN(rice) && rice>=0) state.cashPrice = Math.round(rice);
+  if(!isNaN(sol) && sol>=0) state.solPrice = Math.round(sol*1e4);
+  persist(); renderAll(); toast('시세를 저장했어요 · 환산이 다시 계산됩니다');
 }
 
 /* ---------- 장비 ---------- */
@@ -1863,7 +1931,7 @@ function equipBuyCost(e){
   const eok = (e.buyPrice||0)/1e8;
   return Math.round(eok * (e.tariff?1.1:1) * (e.buyRice||0));
 }
-/* 현금 가치(원): 재판매가 있으면 재판매가×재판매 쌀 시세, 없으면 구매가×구매 쌀 시세 */
+/* 쌀 가치(원): 재판매가 있으면 재판매가×재판매 쌀 시세, 없으면 구매가×구매 쌀 시세 */
 function equipCashValue(e){
   if(e.sellPrice!=null){
     return { won: Math.round((e.sellPrice/1e8) * (e.sellRice||0)), based:'sell' };
@@ -1884,7 +1952,7 @@ function renderEquip(){
     $('eq-table').innerHTML = '<div class="empty" style="padding:22px 12px">등록된 아이템이 없어요.<br>우측 상단 <b>+ 아이템 추가</b>로 슬롯을 만들어보세요.</div>';
     return;
   }
-  const head = `<table><thead><tr><th style="width:78px">부위</th><th>아이템</th><th class="num" style="width:120px">구매 비용</th><th class="num" style="width:130px">재판매가</th><th class="num" style="width:120px">현금 가치</th><th style="width:44px"></th></tr></thead><tbody>`;
+  const head = `<table><thead><tr><th style="width:78px">부위</th><th>아이템</th><th class="num" style="width:120px">구매 비용</th><th class="num" style="width:130px">재판매가</th><th class="num" style="width:120px">쌀 가치</th><th style="width:44px"></th></tr></thead><tbody>`;
   const order = p => { const i = EQUIP_PARTS.indexOf(p); return i<0 ? EQUIP_PARTS.length : i; };
   const sorted = state.equips.slice().sort((a,b)=>order(a.part)-order(b.part));
   const rows = sorted.map(e=>{
@@ -2005,8 +2073,8 @@ const SHEETS = {
       <div class="field"><label>해당일 메소마켓 (1억당 메포)</label><input type="number" id="f-sellmkt" min="0" step="10" value="${e.sellMkt!=null?e.sellMkt:(state.mktPrice||'')}" placeholder="2600" oninput="updSellPreview()"></div>
       <div class="field"><label>해당일 쌀 시세 (1억당 원)</label><input type="number" id="f-sellrice" min="0" step="10" value="${e.sellRice!=null?e.sellRice:(state.cashPrice||'')}" placeholder="1900" oninput="updSellPreview()"></div>
     </div>
-    <div class="preview-line" id="f-preview">현금 가치: 0원</div>
-    <div class="note">메이플 경매장에서 직접 파악한 시세를 입력하세요. 현금 가치 = 재판매가 × 쌀 시세.</div>`;
+    <div class="preview-line" id="f-preview">쌀 가치: 0원</div>
+    <div class="note">메이플 경매장에서 직접 파악한 시세를 입력하세요. 쌀 가치 = 재판매가 × 쌀 시세.</div>`;
   }},
 };
 function openSheet(type){
@@ -2042,7 +2110,7 @@ function updSellPreview(){
   const p = $('f-preview'); if(!p) return;
   const sellEok = num('f-sell'), rice = num('f-sellrice');
   const won = Math.round(sellEok * rice);
-  p.textContent = `현금 가치: ${won.toLocaleString('ko-KR')}원`;
+  p.textContent = `쌀 가치: ${won.toLocaleString('ko-KR')}원`;
 }
 function submitSheet(){
   const dateEl = $('f-date');
