@@ -208,6 +208,17 @@
   .wk-tab .w2{font-size:11px;color:var(--ink-soft);margin-top:1px}
   .wk-tab .w3{font-size:12px;font-weight:800;color:var(--accent-deep);margin-top:3px}
 
+  /* 장비: 부위 태그 */
+  .eq-part-tag{
+    display:inline-block;font-size:11px;font-weight:700;color:var(--accent-deep);
+    background:#fdeeda;border:1px solid #f0c48a;border-radius:8px;padding:2px 8px;white-space:nowrap;
+  }
+  .eq-row{cursor:pointer}
+  .eq-row:hover{background:#fdf6ec}
+  .eq-need{font-size:12px;color:var(--ink-soft);font-weight:600}
+  .eq-check{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin:2px 0 12px;cursor:pointer}
+  .eq-check input{width:16px;height:16px;accent-color:var(--accent-deep);cursor:pointer}
+
   .preview-line{
     background:#fdeeda;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700;
     color:var(--accent-deep);margin-top:4px;
@@ -375,6 +386,7 @@
       <button data-v="expenses"><span class="ico">💳</span><span class="txt">가계부</span></button>
       <button data-v="cash"><span class="ico">🍚</span><span class="txt">쌀 장부</span></button>
       <button data-v="level"><span class="ico">⭐</span><span class="txt">레벨</span></button>
+      <button data-v="equipment"><span class="ico">🗡️</span><span class="txt">장비</span></button>
       <button data-v="settings"><span class="ico">⚙️</span><span class="txt">설정</span></button>
     </nav>
     <div class="side-bottom">
@@ -692,6 +704,26 @@
       </div>
     </section>
 
+    <!-- ============ 장비 ============ -->
+    <section class="view" id="view-equipment">
+      <div class="page-head">
+        <div><div class="page-title">장비</div><div class="page-sub">아이템별 구매·재판매 시세를 기록해 현금 가치를 집계합니다 · 데모</div></div>
+        <button class="btn" onclick="openSheet('equip')">+ 아이템 추가</button>
+      </div>
+      <div class="grid" style="margin-bottom:16px;gap:10px">
+        <div class="panel kpi span-3"><div class="label">총 구매 비용</div><div class="value" id="eq-sum-buy"></div></div>
+        <div class="panel kpi span-3"><div class="label">총 현금 가치</div><div class="value" id="eq-sum-cash"></div></div>
+        <div class="panel kpi span-3"><div class="label">평가 손익</div><div class="value" id="eq-sum-pl"></div></div>
+        <div class="panel kpi span-3"><div class="label">등록 아이템</div><div class="value" id="eq-sum-count"></div></div>
+      </div>
+      <div class="panel tbl-wrap">
+        <div class="card-head">
+          <div><div class="card-title">등록 아이템</div><div class="card-sub">행을 클릭하면 재판매 시세를 입력할 수 있어요 · 현금 가치는 재판매가(없으면 구매가) 기준</div></div>
+        </div>
+        <div id="eq-table"></div>
+      </div>
+    </section>
+
     <!-- ============ 설정 ============ -->
     <section class="view" id="view-settings">
       <div class="page-head">
@@ -752,6 +784,8 @@
 
 <script>
 'use strict';
+/* 장비 장착 부위 카테고리 */
+const EQUIP_PARTS = ['장신구','방어구','무기','보조무기','엠블렘'];
 /* ---------- 저장소 (localStorage 실패 시 메모리로 대체) ---------- */
 const mem = {};
 const store = {
@@ -772,6 +806,16 @@ let state = {
   ocidName: store.get('ocidName', ''),
   levelLog: store.get('levelLog', {}),
   charImage: store.get('charImage', ''),
+  /* 구버전 equips({name,part,value}) → 구매/재판매 스키마로 이관 */
+  equips: store.get('equips', []).map(e=>{
+    if('buyPrice' in e) return e;
+    const legacyMkt = store.get('mktPrice', 2600), legacyRice = store.get('cashPrice', 1900);
+    return { id:e.id, name:e.name, part:e.part||'장신구', memo:e.memo||'',
+      buyDate:'', buyPrice:e.value||0, buyMkt:legacyMkt, buyRice:legacyRice, tariff:false,
+      sellDate:'', sellPrice:null, sellMkt:null, sellRice:null };
+  }),
+  mktPrice: store.get('mktPrice', 2600),   /* 최근 입력 시세 프리필용 */
+  cashPrice: store.get('cashPrice', 1900),
   hunts: store.get('hunts', []),
   expenses: store.get('expenses', []).map(e=>e.kind?e:Object.assign({},e,{kind:'out'})),
   bossWeeks: (bw=>{ /* 수요일 키(구버전) → 목요일 키 이관 */
@@ -1033,7 +1077,7 @@ function copyPrevWeek(){
   persist(); renderAll(); toast('이전 주차 선택(캐릭터 포함)을 불러왔어요');
 }
 
-function persist(){ ['profile','goal','solPrice','cash','hunts','expenses','bossWeeks','bossMonths','nexonKey','mapleName','ocid','ocidName','levelLog','charImage'].forEach(k=>store.set(k, state[k])); }
+function persist(){ ['profile','goal','solPrice','cash','hunts','expenses','bossWeeks','bossMonths','nexonKey','mapleName','ocid','ocidName','levelLog','charImage','equips','mktPrice','cashPrice'].forEach(k=>store.set(k, state[k])); }
 
 /* ---------- 유틸 ---------- */
 const $ = id => document.getElementById(id);
@@ -1812,6 +1856,63 @@ function renderSettings(){
   if(document.activeElement!==$('set-nxkey')) $('set-nxkey').value = state.nexonKey || '';
   if(document.activeElement!==$('set-nxname')) $('set-nxname').value = state.mapleName || '';
 }
+
+/* ---------- 장비 ---------- */
+/* 구매 비용(원): 구매가 × (관세?1.1:1) × 구매일 쌀 시세 */
+function equipBuyCost(e){
+  const eok = (e.buyPrice||0)/1e8;
+  return Math.round(eok * (e.tariff?1.1:1) * (e.buyRice||0));
+}
+/* 현금 가치(원): 재판매가 있으면 재판매가×재판매 쌀 시세, 없으면 구매가×구매 쌀 시세 */
+function equipCashValue(e){
+  if(e.sellPrice!=null){
+    return { won: Math.round((e.sellPrice/1e8) * (e.sellRice||0)), based:'sell' };
+  }
+  return { won: Math.round(((e.buyPrice||0)/1e8) * (e.buyRice||0)), based:'buy' };
+}
+function renderEquip(){
+  const totBuy = state.equips.reduce((s,e)=>s+equipBuyCost(e), 0);
+  const totCash = state.equips.reduce((s,e)=>s+equipCashValue(e).won, 0);
+  const pl = totCash - totBuy;
+  $('eq-sum-buy').textContent = totBuy.toLocaleString('ko-KR')+'원';
+  $('eq-sum-cash').textContent = totCash.toLocaleString('ko-KR')+'원';
+  $('eq-sum-pl').textContent = (pl>=0?'+':'−')+Math.abs(pl).toLocaleString('ko-KR')+'원';
+  $('eq-sum-pl').style.color = pl>=0 ? 'var(--accent-deep)' : '#d0524a';
+  $('eq-sum-count').textContent = state.equips.length+'개';
+
+  if(!state.equips.length){
+    $('eq-table').innerHTML = '<div class="empty" style="padding:22px 12px">등록된 아이템이 없어요.<br>우측 상단 <b>+ 아이템 추가</b>로 슬롯을 만들어보세요.</div>';
+    return;
+  }
+  const head = `<table><thead><tr><th style="width:78px">부위</th><th>아이템</th><th class="num" style="width:120px">구매 비용</th><th class="num" style="width:130px">재판매가</th><th class="num" style="width:120px">현금 가치</th><th style="width:44px"></th></tr></thead><tbody>`;
+  const order = p => { const i = EQUIP_PARTS.indexOf(p); return i<0 ? EQUIP_PARTS.length : i; };
+  const sorted = state.equips.slice().sort((a,b)=>order(a.part)-order(b.part));
+  const rows = sorted.map(e=>{
+    const buyCost = equipBuyCost(e);
+    const cv = equipCashValue(e);
+    const memoLine = e.memo ? `<div class="card-sub" style="margin-top:2px">${esc(e.memo)}</div>` : '';
+    const buySub = `<div class="card-sub" style="margin-top:2px;white-space:nowrap">${esc(e.buyDate||'')} · ${fmtMeso(e.buyPrice||0)}${e.tariff?' · 관세':''}</div>`;
+    const sellCell = e.sellPrice!=null
+      ? `${fmtMeso(e.sellPrice)}<div class="card-sub" style="margin-top:2px">${esc(e.sellDate||'')}</div>`
+      : `<span class="eq-need">미평가</span>`;
+    const cashCell = `${cv.won.toLocaleString('ko-KR')}원` + (cv.based==='buy' ? `<div class="card-sub" style="margin-top:2px">구매가 기준</div>` : '');
+    return `<tr class="eq-row" onclick="openSell('${e.id}')">
+      <td><span class="eq-part-tag">${esc(e.part||'-')}</span></td>
+      <td><b>${esc(e.name)}</b>${memoLine}</td>
+      <td class="num">${buyCost.toLocaleString('ko-KR')}원${buySub}</td>
+      <td class="num">${sellCell}</td>
+      <td class="num">${cashCell}</td>
+      <td class="num"><button class="del" onclick="event.stopPropagation();delRec('equips','${e.id}')" aria-label="삭제">✕</button></td>
+    </tr>`;
+  }).join('');
+  $('eq-table').innerHTML = head + rows + '</tbody></table>';
+}
+let equipSellId = null;
+function openSell(id){
+  equipSellId = id;
+  openSheet('esell');
+}
+
 function saveNexon(){
   state.nexonKey = $('set-nxkey').value.trim();
   const name = $('set-nxname').value.trim();
@@ -1877,6 +1978,36 @@ const SHEETS = {
     <div class="field"><label>항목</label><input type="text" id="f-title" placeholder="예: 제네시스 패스 구매"></div>
     <div class="preview-line" id="f-preview">-0원</div>
     <div class="note">메소 수량과 억당 가격을 입력하면 금액과 항목이 자동으로 채워집니다.</div>`},
+  equip:{title:'아이템 추가 (구매 정보)', fields:()=>`
+    <div class="field-row">
+      <div class="field"><label>부위</label><select id="f-part">${EQUIP_PARTS.map(p=>`<option value="${p}">${p}</option>`).join('')}</select></div>
+      <div class="field"><label>구매 날짜</label><input type="date" id="f-date" value="${todayStr()}"></div>
+    </div>
+    <div class="field"><label>아이템 이름</label><input type="text" id="f-name" placeholder="예: 앱솔랩스 무기"></div>
+    <div class="field"><label>구매가 (억 단위)</label><input type="number" id="f-buy" min="0" step="0.1" placeholder="120" oninput="updEquipPreview()"></div>
+    <div class="field-row">
+      <div class="field"><label>구매일 메소마켓 (1억당 메포)</label><input type="number" id="f-buymkt" min="0" step="10" value="${state.mktPrice||''}" placeholder="2600" oninput="updEquipPreview()"></div>
+      <div class="field"><label>구매일 쌀 시세 (1억당 원)</label><input type="number" id="f-buyrice" min="0" step="10" value="${state.cashPrice||''}" placeholder="1900" oninput="updEquipPreview()"></div>
+    </div>
+    <label class="eq-check"><input type="checkbox" id="f-tariff" oninput="updEquipPreview()"> 타 서버 구매 (관세 10% 추가)</label>
+    <div class="field"><label>메모 (선택)</label><input type="text" id="f-memo" placeholder="예: 22성 추옵 스공"></div>
+    <div class="preview-line" id="f-preview">구매 비용: 0원</div>
+    <div class="note">관세 체크 시 구매가의 10%가 구매 비용에 추가됩니다. 재판매 시세는 등록 후 아이템을 클릭해 입력하세요.</div>`},
+  esell:{title:'재판매 시세 입력', fields:()=>{
+    const e = state.equips.find(x=>x.id===equipSellId) || {};
+    return `
+    <div class="field"><label>아이템</label><input type="text" value="${esc(e.name||'')}" readonly></div>
+    <div class="field-row">
+      <div class="field"><label>기준 날짜</label><input type="date" id="f-date" value="${e.sellDate||todayStr()}"></div>
+      <div class="field"><label>재판매 시세 (억 단위)</label><input type="number" id="f-sell" min="0" step="0.1" value="${e.sellPrice!=null?e.sellPrice/1e8:''}" placeholder="130" oninput="updSellPreview()"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>해당일 메소마켓 (1억당 메포)</label><input type="number" id="f-sellmkt" min="0" step="10" value="${e.sellMkt!=null?e.sellMkt:(state.mktPrice||'')}" placeholder="2600" oninput="updSellPreview()"></div>
+      <div class="field"><label>해당일 쌀 시세 (1억당 원)</label><input type="number" id="f-sellrice" min="0" step="10" value="${e.sellRice!=null?e.sellRice:(state.cashPrice||'')}" placeholder="1900" oninput="updSellPreview()"></div>
+    </div>
+    <div class="preview-line" id="f-preview">현금 가치: 0원</div>
+    <div class="note">메이플 경매장에서 직접 파악한 시세를 입력하세요. 현금 가치 = 재판매가 × 쌀 시세.</div>`;
+  }},
 };
 function openSheet(type){
   sheetType = type;
@@ -1898,6 +2029,20 @@ function updHuntPreview(){
   const p = $('f-preview'); if(!p) return;
   const total = num('f-meso')*1e8 + Math.round(num('f-sol'))*state.solPrice;
   p.textContent = '총 수익: ' + fmtMeso(total);
+}
+function updEquipPreview(){
+  const p = $('f-preview'); if(!p) return;
+  const buyEok = num('f-buy');
+  const rice = num('f-buyrice');
+  const tariff = $('f-tariff') && $('f-tariff').checked;
+  const cost = Math.round(buyEok * (tariff?1.1:1) * rice);
+  p.textContent = `구매 비용: ${cost.toLocaleString('ko-KR')}원` + (tariff?` (관세 10% 포함)`:'');
+}
+function updSellPreview(){
+  const p = $('f-preview'); if(!p) return;
+  const sellEok = num('f-sell'), rice = num('f-sellrice');
+  const won = Math.round(sellEok * rice);
+  p.textContent = `현금 가치: ${won.toLocaleString('ko-KR')}원`;
 }
 function submitSheet(){
   const dateEl = $('f-date');
@@ -1933,6 +2078,29 @@ function submitSheet(){
     state.cash.push({id:uid(), date, kind:$('f-kind').value, cat:$('f-cat').value, title:$('f-title').value.trim(), amount:Math.round(num('f-amt'))});
     cashSel = date;
     const [y,m] = date.split('-'); cashY = +y; cashM = +m-1;
+  }else if(sheetType==='equip'){
+    const name = ($('f-name').value||'').trim();
+    if(!name){ toast('아이템 이름을 입력하세요'); return; }
+    if(num('f-buy')===0){ toast('구매가를 입력하세요'); return; }
+    const buyMkt = Math.round(num('f-buymkt')), buyRice = Math.round(num('f-buyrice'));
+    state.equips.push({
+      id:uid(), name, part:$('f-part').value, memo:$('f-memo').value.trim(),
+      buyDate: date, buyPrice: Math.round(num('f-buy')*1e8),
+      buyMkt, buyRice, tariff: !!($('f-tariff') && $('f-tariff').checked),
+      sellDate:'', sellPrice:null, sellMkt:null, sellRice:null
+    });
+    state.mktPrice = buyMkt || state.mktPrice;   /* 다음 입력 프리필용 최근 시세 기억 */
+    state.cashPrice = buyRice || state.cashPrice;
+  }else if(sheetType==='esell'){
+    const e = state.equips.find(x=>x.id===equipSellId);
+    if(!e){ toast('아이템을 찾을 수 없어요'); return; }
+    if(num('f-sell')===0){ toast('재판매 시세를 입력하세요'); return; }
+    e.sellDate = date;
+    e.sellPrice = Math.round(num('f-sell')*1e8);
+    e.sellMkt = Math.round(num('f-sellmkt'));
+    e.sellRice = Math.round(num('f-sellrice'));
+    state.mktPrice = e.sellMkt || state.mktPrice;
+    state.cashPrice = e.sellRice || state.cashPrice;
   }
   persist(); closeSheet(); renderAll(); toast('저장했어요');
 }
@@ -1983,6 +2151,7 @@ function importData(ev){
         nexonKey: d.nexonKey||'', mapleName: d.mapleName||'', ocid: d.ocid||'', ocidName: d.ocidName||'', levelLog: d.levelLog||{}, charImage: d.charImage||'',
         bossWeeks: d.bossWeeks||{},
         bossMonths: (bm=>{ for(const k of Object.keys(bm)){ const v=bm[k]; if(v && !v.chars) bm[k]={chars:[{id:'main',name:'주 캐릭터',diff:v.diff||null,party:v.party||1}]}; } return bm; })(d.bossMonths||{}),
+        equips: d.equips||[], mktPrice: d.mktPrice||2600, cashPrice: d.cashPrice||1900,
       };
       persist(); renderAll(); toast('데이터를 가져왔어요');
     }catch(e){ toast('파일을 읽을 수 없어요'); }
@@ -2000,7 +2169,7 @@ function resetData(){
   }
   resetPending = 0;
   store.clearAll();
-  state = {profile:{name:'용사',greet:'오늘도 재획 화이팅'}, goal:0, solPrice:5700000, cash:[], hunts:[], expenses:[], bossWeeks:{}, bossMonths:{}, nexonKey:'', mapleName:'', ocid:'', ocidName:'', levelLog:{}, charImage:''};
+  state = {profile:{name:'용사',greet:'오늘도 재획 화이팅'}, goal:0, solPrice:5700000, cash:[], hunts:[], expenses:[], bossWeeks:{}, bossMonths:{}, nexonKey:'', mapleName:'', ocid:'', ocidName:'', levelLog:{}, charImage:'', equips:[], mktPrice:2600, cashPrice:1900};
   persist(); renderAll(); toast('초기화했어요');
 }
 
@@ -2015,7 +2184,7 @@ function go(v){
 document.querySelectorAll('#nav button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.v)));
 
 function renderAll(){
-  renderDashboard(); renderRecords(); renderExpenses(); renderCash(); renderLevel(); renderBoss(); renderSettings();
+  renderDashboard(); renderRecords(); renderExpenses(); renderCash(); renderLevel(); renderEquip(); renderBoss(); renderSettings();
 }
 renderAll();
 </script>
