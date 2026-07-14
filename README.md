@@ -45,20 +45,25 @@ AUTH_TRUST_HOST=true
    - `https://maplediary.site/api/auth/callback/google` (운영)
 3. 발급된 ID/시크릿을 `.env`에 입력
 
-## 배포 (Docker + Caddy)
+## 배포 (중앙 Caddy에 붙이기)
+
+이 서버는 여러 앱을 **중앙 Caddy 리버스 프록시**(`~/dev/infra/caddy/`)로 호스팅한다. maple-diary는 자체 Caddy를 띄우지 않고 공유 네트워크 `caddy_net`에 붙는다. (ScheduleApp과 동일 패턴)
 
 ```bash
 cp .env.example .env              # 운영값 입력, AUTH_URL=https://maplediary.site
-docker compose up -d --build
+docker compose up -d --build      # 호스트 포트 미개방, caddy_net에만 연결
+
+# 중앙 Caddyfile에 아래 블록을 추가:
+#   maplediary.site {
+#       reverse_proxy maple-diary:3000
+#   }
+# 무중단 반영:
+cd ~/dev/infra/caddy && docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
 ```
 
-- **Caddy**가 80/443을 받아 `maplediary.site` 인증서를 Let's Encrypt로 자동 발급/갱신하고 앱으로 프록시한다.
-- 인증서 발급 조건: 도메인 A레코드가 이 PC 공인 IP를 가리키고, 공유기에서 **80·443 포트포워딩**이 되어 있어야 함. (443만 열면 인증서 발급이 실패할 수 있어 80도 함께 열 것)
-- SQLite 파일(`maple_data`)과 인증서(`caddy_data`)는 named volume으로 영속된다. 백업은 이 볼륨을 복사하면 된다.
-
-### 앱 추가 (2~3개 호스팅)
-
-새 앱은 `compose.yaml`에 service를 추가하고 `Caddyfile`에 도메인 블록 한 개만 늘리면 된다. Caddy가 알아서 각 도메인 인증서를 발급한다.
+- 도메인 A레코드가 이 서버 공인 IP를 가리키고 **80·443 포트포워딩**이 되어 있어야 Let's Encrypt 인증서가 발급된다. (인증서는 중앙 Caddy의 `caddy_data` 볼륨에 저장·자동 갱신)
+- SQLite 파일은 `maple_data` named volume으로 영속된다.
+- 앱 내부 포트는 3000(Next.js 기본). 중앙 Caddy는 `maple-diary:3000`으로 프록시한다.
 
 ## 데이터 백업
 

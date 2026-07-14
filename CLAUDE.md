@@ -46,8 +46,10 @@ docker compose up -d --build   # 배포
 
 ### 배포
 - `Dockerfile`은 multi-stage로 standalone 산출물 + `drizzle/`(마이그레이션) + `public/`을 런타임 이미지에 넣는다. better-sqlite3 네이티브 모듈 때문에 `libstdc++6`가 필요.
-- `compose.yaml`: Caddy가 80/443 → 자동 HTTPS → 앱(3000, 외부 미노출). SQLite(`maple_data`)·인증서(`caddy_data`)는 named volume으로 영속.
-- 앱 추가 시 `compose.yaml` service + `Caddyfile` 도메인 블록만 늘리면 됨.
+- 이 서버는 **중앙 Caddy**(`~/dev/infra/caddy/`, compose project `caddy`)가 80/443을 잡고 여러 앱을 프록시한다. maple-diary는 자체 Caddy를 띄우지 않고 `compose.yaml`에서 공유 네트워크 `caddy_net`(external)에만 붙고 호스트 포트는 열지 않는다(`expose: 3000`).
+- 도메인 라우팅은 중앙 `~/dev/infra/caddy/Caddyfile`에 `maplediary.site { reverse_proxy maple-diary:3000 }` 블록으로 추가하고 `docker compose exec caddy caddy reload`로 무중단 반영한다. 인증서는 중앙 Caddy의 `caddy_data` 볼륨에 저장.
+- SQLite는 `maple_data` named volume으로 영속. **빌드 시 마이그레이션 금지**: `db/index.ts`는 `NEXT_PHASE==='phase-production-build'`이면 migrate를 건너뛴다(빌드 워커 병렬 실행 시 CREATE TABLE 충돌 방지). 런타임 단일 프로세스에서만 1회 적용.
+- 도커 명령은 이 환경에서 `sg docker -c '...'`로 실행(현재 셸에 docker 그룹 미적용).
 
 ### 새 데이터 추가 시 체크리스트
 1. `db/schema.ts`에 컬럼/테이블 추가 → `npm run db:generate`
