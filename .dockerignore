@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+legacy
+data
+*.db
+*.db-*
+.env
+.env.*
+!.env.example
+npm-debug.log
+Dockerfile
+compose.yaml
+Caddyfile
