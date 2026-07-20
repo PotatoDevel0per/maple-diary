@@ -8,6 +8,7 @@ import {
   dailyNet,
   huntNet,
   inThisMonth,
+  isAdjust,
   last7,
   levelDiff,
   monthBossSum,
@@ -91,8 +92,10 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
     toast("보유 자산을 반영했어요 · 사냥 탭에 자산 보정 기록 추가");
   };
 
-  /* 수익원 비중 */
-  const srcHunt = s.hunts.filter((h) => inThisMonth(h.date)).reduce((a, h) => a + huntNet(h, s.solPrice), 0);
+  /* 수익원 비중 (자산 보정 제외) */
+  const srcHunt = s.hunts
+    .filter((h) => inThisMonth(h.date) && !isAdjust(h))
+    .reduce((a, h) => a + huntNet(h, s.solPrice), 0);
   const srcBoss = bossMonthTotal(s, now.getFullYear(), now.getMonth()).total;
   const srcInc = s.expenses.filter((e) => inThisMonth(e.date) && e.kind === "in").reduce((a, e) => a + e.amount, 0);
   const srcTotal = srcHunt + srcBoss + srcInc;
@@ -113,8 +116,8 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
     );
   };
 
-  /* 사냥 효율 */
-  const hm = s.hunts.filter((h) => inThisMonth(h.date));
+  /* 사냥 효율 (자산 보정 제외) */
+  const hm = s.hunts.filter((h) => inThisMonth(h.date) && !isAdjust(h));
   const effSoj = Math.round(hm.reduce((a, h) => a + h.sojaebi, 0));
   const effSol = hm.reduce((a, h) => a + (h.sol || 0), 0);
   const effMin = Math.round(effSoj * 30);
@@ -351,7 +354,9 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
             cell={(ds) => {
               const [yy, mm, dd] = ds.split("-").map(Number);
               const dow = new Date(yy, mm - 1, dd).getDay();
-              const huntSum = s.hunts.filter((h) => h.date === ds).reduce((a, h) => a + huntNet(h, s.solPrice), 0);
+              const huntSum = s.hunts
+                .filter((h) => h.date === ds && !isAdjust(h))
+                .reduce((a, h) => a + huntNet(h, s.solPrice), 0);
               const led = s.expenses.filter((e) => e.date === ds);
               const ledNet =
                 led.filter((e) => e.kind === "in").reduce((a, e) => a + e.amount, 0) -

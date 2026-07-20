@@ -4,7 +4,7 @@ import { useState } from "react";
 import Calendar from "../Calendar";
 import Modal from "../Modal";
 import { useAction, useStore } from "../store";
-import { huntNet } from "@/lib/calc";
+import { huntNet, isAdjust } from "@/lib/calc";
 import { fmtMeso, todayStr } from "@/lib/format";
 import { addHunt, deleteHunt } from "@/server/actions/records";
 
@@ -34,7 +34,7 @@ export default function Records() {
 
   const dayHunts = s.hunts.filter((h) => h.date === sel);
   const mm = String(m + 1).padStart(2, "0");
-  const monthHunts = s.hunts.filter((h) => h.date.startsWith(`${y}-${mm}-`));
+  const monthHunts = s.hunts.filter((h) => h.date.startsWith(`${y}-${mm}-`) && !isAdjust(h));
   const soj = Math.round(monthHunts.reduce((a, h) => a + h.sojaebi, 0));
   const sol = monthHunts.reduce((a, h) => a + (h.sol || 0), 0);
   const net = monthHunts.reduce((a, h) => a + huntNet(h, s.solPrice), 0);
@@ -59,7 +59,7 @@ export default function Records() {
             onSelect={setSel}
             onMove={move}
             cell={(ds) => {
-              const hs = s.hunts.filter((h) => h.date === ds);
+              const hs = s.hunts.filter((h) => h.date === ds && !isAdjust(h));
               if (!hs.length) return {};
               const n = hs.reduce((a, h) => a + huntNet(h, s.solPrice), 0);
               const sj = Math.round(hs.reduce((a, h) => a + h.sojaebi, 0));

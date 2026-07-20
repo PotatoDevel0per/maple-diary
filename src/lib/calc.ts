@@ -4,8 +4,15 @@ import type { BossMonthChar, BossWeekChar, DiaryState, Equip, Hunt, LevelEntry }
 
 export const huntNet = (h: Hunt, solPrice: number) => h.meso + (h.sol || 0) * solPrice;
 
+/* 보유 자산 편집으로 생성된 '자산 보정' 기록 판별.
+   총자산 계산에는 포함되지만 사냥 통계·수익 집계에서는 제외한다. */
+export const ADJUST_MEMO = "자산 보정";
+export const isAdjust = (h: Hunt) => h.memo === ADJUST_MEMO;
+
 export function dailyNet(s: DiaryState, ds: string): number {
-  const rev = s.hunts.filter((h) => h.date === ds).reduce((sum, h) => sum + huntNet(h, s.solPrice), 0);
+  const rev = s.hunts
+    .filter((h) => h.date === ds && !isAdjust(h))
+    .reduce((sum, h) => sum + huntNet(h, s.solPrice), 0);
   const led = s.expenses.filter((e) => e.date === ds);
   const inc = led.filter((e) => e.kind === "in").reduce((sum, e) => sum + e.amount, 0);
   const out = led.filter((e) => e.kind !== "in").reduce((sum, e) => sum + e.amount, 0);
@@ -100,7 +107,7 @@ export function bossAllTotal(s: DiaryState): number {
 export function monthNet(s: DiaryState) {
   const now = new Date();
   const rev =
-    s.hunts.filter((h) => inThisMonth(h.date)).reduce((sum, h) => sum + huntNet(h, s.solPrice), 0) +
+    s.hunts.filter((h) => inThisMonth(h.date) && !isAdjust(h)).reduce((sum, h) => sum + huntNet(h, s.solPrice), 0) +
     bossMonthTotal(s, now.getFullYear(), now.getMonth()).total;
   const led = s.expenses.filter((e) => inThisMonth(e.date));
   const inc = led.filter((e) => e.kind === "in").reduce((sum, e) => sum + e.amount, 0);
@@ -108,7 +115,8 @@ export function monthNet(s: DiaryState) {
   return { rev: rev + inc, exp, net: rev + inc - exp };
 }
 
-/* 전체 누적 게임 메소: 사냥 + 보스 + 가계부(수입−지출) */
+/* 전체 누적 게임 메소: 사냥 + 보스 + 가계부(수입−지출).
+   '자산 보정' 기록도 포함해야 보유 자산이 실제 값과 맞으므로 필터하지 않는다. */
 export function totalGameMeso(s: DiaryState): number {
   const hunt = s.hunts.reduce((sum, h) => sum + huntNet(h, s.solPrice), 0);
   const inc = s.expenses.filter((e) => e.kind === "in").reduce((sum, e) => sum + e.amount, 0);
