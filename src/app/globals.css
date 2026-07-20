@@ -264,11 +264,13 @@
   .field{margin-bottom:13px}
   .field label{display:block;font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:5px}
   .field input,.field select{
-    width:100%;border:1px solid var(--line);border-radius:13px;padding:10px 12px;
+    width:100%;min-width:0;border:1px solid var(--line);border-radius:13px;padding:10px 12px;
     font-size:14px;font-family:inherit;background:#fffdf9;color:var(--ink);
   }
+  /* iOS/모바일에서 date 입력이 고유 너비로 셀을 밀어내는 것 방지 */
+  .field input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%}
   .field input:focus,.field select:focus{outline:2px solid var(--accent);border-color:transparent}
-  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .field-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
   .modal-actions{display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:20px}
 
   .note{font-size:12px;color:var(--ink-soft);margin-top:10px}
