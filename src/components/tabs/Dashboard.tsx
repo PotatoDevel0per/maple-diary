@@ -175,20 +175,7 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
               {editGoal ? "닫기" : "✏️ 목표"}
             </a>
           </div>
-          <div className="stat-line">
-            <span>총수익</span>
-            <b>{fmtMeso(m.rev)}</b>
-          </div>
-          <div className="stat-line">
-            <span>지출</span>
-            <b style={{ color: "var(--danger)" }}>-{fmtMeso(m.exp)}</b>
-          </div>
-          <div className="stat-line">
-            <span>순수익</span>
-            <b style={{ color: "var(--accent-deep)" }}>{fmtMeso(m.net)}</b>
-          </div>
-
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginBottom: 12 }}>
             {!editGoal ? (
               <>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}>
@@ -226,6 +213,19 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
                 </button>
               </div>
             )}
+          </div>
+
+          <div className="stat-line">
+            <span>총수익</span>
+            <b>{fmtMeso(m.rev)}</b>
+          </div>
+          <div className="stat-line">
+            <span>지출</span>
+            <b style={{ color: "var(--danger)" }}>-{fmtMeso(m.exp)}</b>
+          </div>
+          <div className="stat-line">
+            <span>순수익</span>
+            <b style={{ color: "var(--accent-deep)" }}>{fmtMeso(m.net)}</b>
           </div>
         </div>
 
