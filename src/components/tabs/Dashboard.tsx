@@ -19,7 +19,7 @@ import {
 } from "@/lib/calc";
 import { dsOf, fmtMeso, fmtWon, monthKey, todayStr } from "@/lib/format";
 import { saveGoal } from "@/server/actions/settings";
-import { addAssetAdjustment } from "@/server/actions/records";
+import { addAssetAdjustment, addSolSale } from "@/server/actions/records";
 
 export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "level") => void }) {
   const { s, set, toast } = useStore();
@@ -30,6 +30,9 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
   const [assetMeso, setAssetMeso] = useState("");
   const [assetSol, setAssetSol] = useState("");
   const [assetInit, setAssetInit] = useState({ meso: "", sol: "" });
+  const [sellMode, setSellMode] = useState(false);
+  const [sellQty, setSellQty] = useState("");
+  const [sellPriceMan, setSellPriceMan] = useState("");
   const nowInit = new Date();
   const [calY, setCalY] = useState(nowInit.getFullYear());
   const [calM, setCalM] = useState(nowInit.getMonth());
@@ -71,6 +74,7 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
     setAssetMeso(mesoStr);
     setAssetSol(solStr);
     setAssetInit({ meso: mesoStr, sol: solStr });
+    setSellMode(false);
     setEditAsset((v) => !v);
   };
 
@@ -90,6 +94,28 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
     set((p) => ({ ...p, hunts: [...p.hunts, row] }));
     setEditAsset(false);
     toast("보유 자산을 반영했어요 · 사냥 탭에 자산 보정 기록 추가");
+  };
+
+  const openSell = () => {
+    setSellQty("");
+    setSellPriceMan(String(Math.round(s.solPrice / 1e4)));
+    setEditAsset(false);
+    setSellMode(true);
+  };
+
+  const sellQtyN = Math.max(0, parseInt(sellQty) || 0);
+  const sellPerMeso = Math.max(0, Math.round((parseFloat(sellPriceMan) || 0) * 1e4));
+  const sellProceeds = sellQtyN * sellPerMeso;
+
+  const saveSell = async () => {
+    if (sellQtyN <= 0) return toast("판매 수량을 입력하세요");
+    if (sellQtyN > totalSol) return toast("보유 조각보다 많이 팔 수 없어요");
+    if (sellPerMeso <= 0) return toast("시세를 입력하세요");
+    const row = await run(() => addSolSale({ date: todayStr(), qty: sellQtyN, pricePer: sellPerMeso }));
+    if (!row) return;
+    set((p) => ({ ...p, hunts: [...p.hunts, row] }));
+    setSellMode(false);
+    toast(`조각 ${sellQtyN}개 판매 · ${fmtMeso(sellProceeds)} 메소로 반영`);
   };
 
   /* 수익원 비중 (자산 보정 제외) */
@@ -282,7 +308,42 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
               {editAsset ? "닫기" : "✏️ 편집"}
             </a>
           </div>
-          {!editAsset ? (
+          {sellMode ? (
+            <>
+              <div className="field" style={{ marginBottom: 10 }}>
+                <label>판매 수량 (개) · 보유 {totalSol.toLocaleString("ko-KR")}개</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="예: 100"
+                  value={sellQty}
+                  onChange={(e) => setSellQty(e.target.value)}
+                />
+              </div>
+              <div className="field" style={{ marginBottom: 10 }}>
+                <label>개당 시세 (만 메소)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="예: 633"
+                  value={sellPriceMan}
+                  onChange={(e) => setSellPriceMan(e.target.value)}
+                />
+              </div>
+              <div className="preview-line">판매 금액: {fmtMeso(sellProceeds)}</div>
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                <button className="btn ghost" style={{ flex: 1 }} onClick={() => setSellMode(false)}>
+                  취소
+                </button>
+                <button className="btn" style={{ flex: 2 }} onClick={saveSell}>
+                  판매
+                </button>
+              </div>
+              <div className="note">판매 금액이 보유 메소로 합산되고, 조각 수가 줄어듭니다. (사냥 탭에 조각 판매 기록)</div>
+            </>
+          ) : !editAsset ? (
             <>
               <div className="stat-line">
                 <span>보유 메소</span>
@@ -298,6 +359,14 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
                 <span>총 자산 (메소 환산)</span>
                 <b style={{ color: "var(--accent-deep)" }}>{fmtMeso(assetTotal)}</b>
               </div>
+              <button
+                className="btn ghost block"
+                style={{ marginTop: 12, padding: 9, fontSize: 13 }}
+                onClick={openSell}
+                disabled={totalSol <= 0}
+              >
+                🪙 솔 조각 판매
+              </button>
             </>
           ) : (
             <>

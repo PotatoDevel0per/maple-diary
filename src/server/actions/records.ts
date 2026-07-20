@@ -57,6 +57,25 @@ export async function addAssetAdjustment(input: { date: string; mesoDiff: number
   return row;
 }
 
+/* 솔 에르다 조각 판매: 조각 -qty, 메소 +qty*pricePer 를 사냥 기록으로 남긴다.
+   보유 메소로 판매 금액이 합산되고 조각 수는 줄어든다. */
+export async function addSolSale(input: { date: string; qty: number; pricePer: number }): Promise<Hunt> {
+  const userId = await requireUserId();
+  const qty = Math.max(0, Math.round(Number(input.qty)) || 0);
+  const price = Math.max(0, Math.round(Number(input.pricePer)) || 0);
+  if (qty <= 0 || price <= 0) throw new Error("판매 수량과 시세를 입력하세요");
+  const row: Hunt = {
+    id: uid(),
+    date: cleanDate(input.date),
+    sojaebi: 0,
+    meso: qty * price,
+    sol: -qty,
+    memo: "조각 판매",
+  };
+  db.insert(hunts).values({ ...row, userId }).run();
+  return row;
+}
+
 /* ---------- 가계부 (게임 메소) ---------- */
 export async function addLedger(input: Omit<LedgerEntry, "id">): Promise<LedgerEntry> {
   const userId = await requireUserId();

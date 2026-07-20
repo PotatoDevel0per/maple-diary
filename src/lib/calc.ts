@@ -4,10 +4,11 @@ import type { BossMonthChar, BossWeekChar, DiaryState, Equip, Hunt, LevelEntry }
 
 export const huntNet = (h: Hunt, solPrice: number) => h.meso + (h.sol || 0) * solPrice;
 
-/* 보유 자산 편집으로 생성된 '자산 보정' 기록 판별.
+/* 보유 자산 편집('자산 보정')·조각 판매('조각 판매')로 생성된 시스템 기록 판별.
    총자산 계산에는 포함되지만 사냥 통계·수익 집계에서는 제외한다. */
 export const ADJUST_MEMO = "자산 보정";
-export const isAdjust = (h: Hunt) => h.memo === ADJUST_MEMO;
+export const SELL_MEMO = "조각 판매";
+export const isAdjust = (h: Hunt) => h.memo === ADJUST_MEMO || h.memo === SELL_MEMO;
 
 export function dailyNet(s: DiaryState, ds: string): number {
   const rev = s.hunts
