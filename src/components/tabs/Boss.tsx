@@ -27,6 +27,11 @@ export default function Boss() {
   const [modal, setModal] = useState<null | { mode: "add" | "rename"; def: string }>(null);
   const delRef = useRef(0);
 
+  /* '주 캐릭터'(main 슬롯)는 설정의 Nexon 캐릭터 이름으로 표시 (표시 전용, 데이터 미변경) */
+  const mainName = s.mapleName || s.profile.name || "주 캐릭터";
+  const dispName = (c: { id: string; name: string }) =>
+    c.id === "main" && (!c.name || c.name === "주 캐릭터") ? mainName : c.name;
+
   const weeks = monthThursdays(y, m);
   const isMonth = weekSel === "month";
   /* 선택 주차가 이 달에 없으면 보정 */
@@ -275,7 +280,7 @@ export default function Boss() {
                 style={{ cursor: "pointer" }}
                 onClick={() => setCharSel(c.id)}
               >
-                <span style={{ fontWeight: c.id === charSel ? 800 : undefined }}>{c.name}</span>
+                <span style={{ fontWeight: c.id === charSel ? 800 : undefined }}>{dispName(c)}</span>
                 <b style={{ color: v ? "var(--accent-deep)" : "var(--ink-soft)" }}>{v ? fmtMeso(v) : "미기록"}</b>
               </div>
             );
@@ -289,7 +294,7 @@ export default function Boss() {
               onClick={() => setCharSel(c.id)}
             >
               <span style={{ fontWeight: c.id === charSel ? 800 : undefined }}>
-                {c.name} <span className="sub">결정 {t.count}/{WEEKLY_SELL_LIMIT}</span>
+                {dispName(c)} <span className="sub">결정 {t.count}/{WEEKLY_SELL_LIMIT}</span>
               </span>
               <b style={{ color: t.sum ? "var(--accent-deep)" : "var(--ink-soft)" }}>{t.sum ? fmtMeso(t.sum) : "미기록"}</b>
             </div>
@@ -302,8 +307,8 @@ export default function Boss() {
           <div>
             <div className="card-title">
               {isMonth
-                ? `${m + 1}월 월간 보스 · ${curChar?.name}`
-                : `${m + 1}월 ${weeks.indexOf(weekSel) + 1}주차 · ${curChar?.name} 결정 ${
+                ? `${m + 1}월 월간 보스 · ${curChar ? dispName(curChar) : ""}`
+                : `${m + 1}월 ${weeks.indexOf(weekSel) + 1}주차 · ${curChar ? dispName(curChar) : ""} 결정 ${
                     curChar && "weekly" in curChar ? charTotal(curChar).count : 0
                   }/${WEEKLY_SELL_LIMIT}`}
             </div>
@@ -313,7 +318,7 @@ export default function Boss() {
             </div>
           </div>
           <div id="bs-actions" style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-            <button className="btn ghost" style={{ padding: "8px 12px", fontSize: 12 }} onClick={() => setModal({ mode: "rename", def: curChar?.name || "" })}>
+            <button className="btn ghost" style={{ padding: "8px 12px", fontSize: 12 }} onClick={() => setModal({ mode: "rename", def: curChar ? dispName(curChar) : "" })}>
               이름 변경
             </button>
             <button className="btn ghost" style={{ padding: "8px 12px", fontSize: 12 }} onClick={deleteChar}>
@@ -341,7 +346,7 @@ export default function Boss() {
                 })();
             return (
               <button key={c.id} className={"chip" + (c.id === charSel ? " on" : "")} onClick={() => setCharSel(c.id)}>
-                {c.name} <span style={{ opacity: 0.75, fontWeight: 600 }}>{label}</span>
+                {dispName(c)} <span style={{ opacity: 0.75, fontWeight: 600 }}>{label}</span>
               </button>
             );
           })}
