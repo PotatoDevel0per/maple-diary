@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Calendar from "../Calendar";
 import { useAction, useStore } from "../store";
 import {
   bossMonthTotal,
@@ -9,11 +10,13 @@ import {
   inThisMonth,
   last7,
   levelDiff,
+  monthBossSum,
   monthNet,
   recoveryStatus,
   totalGameMeso,
+  weekTotal,
 } from "@/lib/calc";
-import { dsOf, fmtMeso, fmtWon, todayStr } from "@/lib/format";
+import { dsOf, fmtMeso, fmtWon, monthKey, todayStr } from "@/lib/format";
 import { saveGoal } from "@/server/actions/settings";
 
 export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "level") => void }) {
@@ -21,6 +24,18 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
   const run = useAction();
   const [editGoal, setEditGoal] = useState(false);
   const [goalInput, setGoalInput] = useState("");
+  const nowInit = new Date();
+  const [calY, setCalY] = useState(nowInit.getFullYear());
+  const [calM, setCalM] = useState(nowInit.getMonth());
+
+  const calMove = (delta: number) => {
+    let nm = calM + delta,
+      ny = calY;
+    if (nm < 0) (nm = 11), ny--;
+    if (nm > 11) (nm = 0), ny++;
+    setCalM(nm);
+    setCalY(ny);
+  };
 
   const now = new Date();
   const l7 = last7(s);
@@ -43,13 +58,6 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
   const totalSol = s.hunts.reduce((a, h) => a + (h.sol || 0), 0);
   const solValue = totalSol * s.solPrice;
   const mesoOnly = assetTotal - solValue; /* 조각 환산분을 뺀 순수 메소 */
-
-  /* 이번 달 지출 카테고리별 */
-  const expM = s.expenses.filter((e) => inThisMonth(e.date) && e.kind !== "in");
-  const byCat: Record<string, number> = {};
-  expM.forEach((e) => (byCat[e.cat] = (byCat[e.cat] || 0) + e.amount));
-
-  const recent = [...s.hunts].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
 
   /* 수익원 비중 */
   const srcHunt = s.hunts.filter((h) => inThisMonth(h.date)).reduce((a, h) => a + huntNet(h, s.solPrice), 0);
@@ -253,63 +261,53 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
         </div>
       </div>
 
-      {/* 차트 + 지출 */}
-      <div className="grid" style={{ marginBottom: 16 }}>
-        <div className="panel span-8">
-          <div className="card-head">
-            <div>
-              <div className="card-title">최근 7일</div>
-              <div className="card-sub">일자별 순수익 추이 (사냥 − 지출)</div>
-            </div>
-            <div className="card-aside">평균 {fmtMeso(avg)}</div>
-          </div>
-          <NetChart data={l7} />
-        </div>
-        <div className="panel span-4">
-          <div className="card-head">
-            <div>
-              <div className="card-title">이번 달 지출</div>
-              <div className="card-sub">구매/강화/소모 비용 요약</div>
-            </div>
-            <div className="card-aside">{fmtMeso(expM.reduce((a, e) => a + e.amount, 0))}</div>
-          </div>
-          {expM.length === 0 ? (
-            <div className="empty">아직 지출이 없어요.</div>
-          ) : (
-            Object.entries(byCat).map(([c, v]) => (
-              <div key={c} className="stat-line">
-                <span>{c}</span>
-                <b>{fmtMeso(v)}</b>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* 최근 사냥 */}
+      {/* 월간 달력: 일자별 사냥·가계부, 목요일 주간보스, 1일 월간보스 */}
       <div className="grid" style={{ marginBottom: 16 }}>
         <div className="panel span-12">
           <div className="card-head">
-            <div className="card-title">최근 사냥</div>
+            <div>
+              <div className="card-title">월간 현황</div>
+              <div className="card-sub">사냥·가계부 일별 집계 · 목요일 주간보스 · 1일 월간보스</div>
+            </div>
             <a className="card-aside" onClick={() => onGo("records")}>
-              전체보기
+              사냥 기록
             </a>
           </div>
-          {recent.length === 0 ? (
-            <div className="empty">아직 사냥이 없어요. 첫 사냥을 추가해보세요!</div>
-          ) : (
-            recent.map((h) => (
-              <div key={h.id} className="mini-item">
-                <div>
-                  <div className="t1">{h.date}</div>
-                  <div className="t2">
-                    소재비 {h.sojaebi}개 · 솔 조각 {h.sol || 0}개{h.memo ? " · " + h.memo : ""}
-                  </div>
+          <Calendar
+            y={calY}
+            m={calM}
+            selected=""
+            onSelect={() => {}}
+            onMove={calMove}
+            cell={(ds) => {
+              const [yy, mm, dd] = ds.split("-").map(Number);
+              const dow = new Date(yy, mm - 1, dd).getDay();
+              const huntSum = s.hunts.filter((h) => h.date === ds).reduce((a, h) => a + huntNet(h, s.solPrice), 0);
+              const led = s.expenses.filter((e) => e.date === ds);
+              const ledNet =
+                led.filter((e) => e.kind === "in").reduce((a, e) => a + e.amount, 0) -
+                led.filter((e) => e.kind !== "in").reduce((a, e) => a + e.amount, 0);
+              const bossW = dow === 4 ? weekTotal(s, ds).sum : 0; /* 그 주(목~수) 보스 합계 */
+              const bossM = dd === 1 ? monthBossSum(s, monthKey(yy, mm - 1)) : 0; /* 월간보스 */
+              const has = huntSum !== 0 || ledNet !== 0 || bossW > 0 || bossM > 0;
+              if (!has) return {};
+              const row = (label: string, color: string, text: string) => (
+                <span style={{ fontSize: "10.5px", fontWeight: 700, color, lineHeight: 1.25, wordBreak: "keep-all" }}>
+                  {label} {text}
+                </span>
+              );
+              const body = (
+                <div style={{ marginTop: 3, display: "flex", flexDirection: "column", gap: 1 }}>
+                  {huntSum > 0 && row("사냥", "var(--accent-deep)", fmtMeso(huntSum))}
+                  {ledNet !== 0 &&
+                    row("가계부", ledNet >= 0 ? "var(--accent-deep)" : "var(--danger)", (ledNet > 0 ? "+" : "") + fmtMeso(ledNet))}
+                  {bossW > 0 && row("보스", "#8163c9", fmtMeso(bossW))}
+                  {bossM > 0 && row("월보스", "#8163c9", fmtMeso(bossM))}
                 </div>
-                <div className="amt">{fmtMeso(huntNet(h, s.solPrice))}</div>
-              </div>
-            ))
-          )}
+              );
+              return { has: true, body };
+            }}
+          />
         </div>
       </div>
 
@@ -437,49 +435,5 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
         </div>
       </div>
     </section>
-  );
-}
-
-function NetChart({ data }: { data: { label: string; net: number }[] }) {
-  const W = 640,
-    H = 230,
-    padL = 10,
-    padR = 10,
-    padT = 16,
-    padB = 30;
-  const max = Math.max(...data.map((d) => d.net), 1);
-  const min = Math.min(...data.map((d) => d.net), 0);
-  const range = max - min || 1;
-  const x = (i: number) => padL + (i * (W - padL - padR)) / 6;
-  const yOf = (v: number) => padT + (H - padT - padB) * (1 - (v - min) / range);
-  const pts = data.map((d, i) => [x(i), yOf(d.net)] as const);
-  const line = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
-  const area = line + ` L ${pts[6][0].toFixed(1)} ${H - padB} L ${pts[0][0].toFixed(1)} ${H - padB} Z`;
-  const zeroY = min < 0 && max > 0 ? yOf(0) : null;
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="최근 7일 순수익 추이">
-      <defs>
-        <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#e8973a" stopOpacity=".28" />
-          <stop offset="1" stopColor="#e8973a" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      {zeroY !== null && <line x1={padL} y1={zeroY} x2={W - padR} y2={zeroY} stroke="#ead9bf" strokeDasharray="4 4" />}
-      <path d={area} fill="url(#g)" />
-      <path d={line} fill="none" stroke="#e8973a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      {pts.map((p, i) => (
-        <circle key={i} cx={p[0]} cy={p[1]} r="4" fill="#fff" stroke="#d97f1e" strokeWidth="2" />
-      ))}
-      {data.map((d, i) => (
-        <text key={"x" + i} x={x(i)} y={H - 9} fontSize="11" fill="#9a7b52" textAnchor="middle">
-          {d.label}
-        </text>
-      ))}
-      {data.map((d, i) => (
-        <text key={"v" + i} x={x(i)} y={yOf(d.net) - 10} fontSize="10" fill="#b08a55" textAnchor="middle">
-          {d.net !== 0 ? fmtMeso(d.net) : ""}
-        </text>
-      ))}
-    </svg>
   );
 }

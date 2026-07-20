@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { dsOf, todayStr } from "@/lib/format";
 
 export interface CalCell {
@@ -7,6 +8,7 @@ export interface CalCell {
   netStr?: string;
   sub?: string;
   has?: boolean;
+  body?: ReactNode; /* 있으면 netStr/sub 대신 이 내용을 렌더 */
 }
 
 export default function Calendar({
@@ -65,12 +67,14 @@ export default function Calendar({
           return (
             <div key={ds} className={cls} onClick={() => onSelect(ds)}>
               <span className="d">{d}</span>
-              {c.netStr && (
-                <>
-                  <div className={"cnet" + (c.net != null && c.net < 0 ? " neg" : "")}>{c.netStr}</div>
-                  {c.sub && <div className="csoj">{c.sub}</div>}
-                </>
-              )}
+              {c.body !== undefined
+                ? c.body
+                : c.netStr && (
+                    <>
+                      <div className={"cnet" + (c.net != null && c.net < 0 ? " neg" : "")}>{c.netStr}</div>
+                      {c.sub && <div className="csoj">{c.sub}</div>}
+                    </>
+                  )}
             </div>
           );
         })}
