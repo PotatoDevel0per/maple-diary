@@ -37,6 +37,26 @@ export async function deleteHunt(id: string) {
   db.delete(hunts).where(and(eq(hunts.userId, userId), eq(hunts.id, id))).run();
 }
 
+/* 보유 자산 보정: 현재 값과 입력 값의 차익(메소·조각)을 사냥 기록으로 남긴다.
+   메소·조각이 함께 담기고 음수(사용·소모)도 허용해야 하므로 addHunt와 분리. */
+export async function addAssetAdjustment(input: { date: string; mesoDiff: number; solDiff: number }): Promise<Hunt> {
+  const userId = await requireUserId();
+  const toInt = (v: unknown) => {
+    const n = Math.round(Number(v));
+    return Number.isFinite(n) ? n : 0;
+  };
+  const row: Hunt = {
+    id: uid(),
+    date: cleanDate(input.date),
+    sojaebi: 0,
+    meso: toInt(input.mesoDiff),
+    sol: toInt(input.solDiff),
+    memo: "자산 보정",
+  };
+  db.insert(hunts).values({ ...row, userId }).run();
+  return row;
+}
+
 /* ---------- 가계부 (게임 메소) ---------- */
 export async function addLedger(input: Omit<LedgerEntry, "id">): Promise<LedgerEntry> {
   const userId = await requireUserId();

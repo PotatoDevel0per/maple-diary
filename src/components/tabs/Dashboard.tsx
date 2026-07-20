@@ -18,12 +18,17 @@ import {
 } from "@/lib/calc";
 import { dsOf, fmtMeso, fmtWon, monthKey, todayStr } from "@/lib/format";
 import { saveGoal } from "@/server/actions/settings";
+import { addAssetAdjustment } from "@/server/actions/records";
 
 export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "level") => void }) {
   const { s, set, toast } = useStore();
   const run = useAction();
   const [editGoal, setEditGoal] = useState(false);
   const [goalInput, setGoalInput] = useState("");
+  const [editAsset, setEditAsset] = useState(false);
+  const [assetMeso, setAssetMeso] = useState("");
+  const [assetSol, setAssetSol] = useState("");
+  const [assetInit, setAssetInit] = useState({ meso: "", sol: "" });
   const nowInit = new Date();
   const [calY, setCalY] = useState(nowInit.getFullYear());
   const [calM, setCalM] = useState(nowInit.getMonth());
@@ -58,6 +63,33 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
   const totalSol = s.hunts.reduce((a, h) => a + (h.sol || 0), 0);
   const solValue = totalSol * s.solPrice;
   const mesoOnly = assetTotal - solValue; /* 조각 환산분을 뺀 순수 메소 */
+
+  const openAssetEdit = () => {
+    const mesoStr = String(+(mesoOnly / 1e8).toFixed(2));
+    const solStr = String(totalSol);
+    setAssetMeso(mesoStr);
+    setAssetSol(solStr);
+    setAssetInit({ meso: mesoStr, sol: solStr });
+    setEditAsset((v) => !v);
+  };
+
+  const saveAsset = async () => {
+    /* 값을 안 바꾼 필드는 반올림 오차로 인한 허위 차익이 생기지 않도록 그대로 둠 */
+    const targetMeso = assetMeso === assetInit.meso ? mesoOnly : Math.round((parseFloat(assetMeso) || 0) * 1e8);
+    const targetSol = assetSol === assetInit.sol ? totalSol : Math.max(0, parseInt(assetSol) || 0);
+    const dM = targetMeso - mesoOnly;
+    const dF = targetSol - totalSol;
+    if (dM === 0 && dF === 0) {
+      setEditAsset(false);
+      toast("변동이 없어요");
+      return;
+    }
+    const row = await run(() => addAssetAdjustment({ date: todayStr(), mesoDiff: dM, solDiff: dF }));
+    if (!row) return;
+    set((p) => ({ ...p, hunts: [...p.hunts, row] }));
+    setEditAsset(false);
+    toast("보유 자산을 반영했어요 · 사냥 탭에 자산 보정 기록 추가");
+  };
 
   /* 수익원 비중 */
   const srcHunt = s.hunts.filter((h) => inThisMonth(h.date)).reduce((a, h) => a + huntNet(h, s.solPrice), 0);
@@ -243,21 +275,58 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
               <div className="card-title">💰 현재 보유 자산</div>
               <div className="card-sub">누적 사냥·보스·가계부 기준</div>
             </div>
+            <a className="card-aside" style={{ cursor: "pointer" }} onClick={openAssetEdit}>
+              {editAsset ? "닫기" : "✏️ 편집"}
+            </a>
           </div>
-          <div className="stat-line">
-            <span>보유 메소</span>
-            <b>{fmtMeso(mesoOnly)}</b>
-          </div>
-          <div className="stat-line">
-            <span>솔 에르다 조각</span>
-            <b>
-              {totalSol.toLocaleString("ko-KR")}개 <span className="sub">({fmtMeso(solValue)})</span>
-            </b>
-          </div>
-          <div className="stat-line" style={{ marginTop: 4 }}>
-            <span>총 자산 (메소 환산)</span>
-            <b style={{ color: "var(--accent-deep)" }}>{fmtMeso(assetTotal)}</b>
-          </div>
+          {!editAsset ? (
+            <>
+              <div className="stat-line">
+                <span>보유 메소</span>
+                <b>{fmtMeso(mesoOnly)}</b>
+              </div>
+              <div className="stat-line">
+                <span>솔 에르다 조각</span>
+                <b>
+                  {totalSol.toLocaleString("ko-KR")}개 <span className="sub">({fmtMeso(solValue)})</span>
+                </b>
+              </div>
+              <div className="stat-line" style={{ marginTop: 4 }}>
+                <span>총 자산 (메소 환산)</span>
+                <b style={{ color: "var(--accent-deep)" }}>{fmtMeso(assetTotal)}</b>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="field" style={{ marginBottom: 10 }}>
+                <label>보유 메소 (억)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  placeholder="예: 12.6"
+                  value={assetMeso}
+                  onChange={(e) => setAssetMeso(e.target.value)}
+                />
+              </div>
+              <div className="field" style={{ marginBottom: 10 }}>
+                <label>보유 솔 에르다 조각 (개)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="예: 240"
+                  value={assetSol}
+                  onChange={(e) => setAssetSol(e.target.value)}
+                />
+              </div>
+              <button className="btn block" onClick={saveAsset}>
+                저장
+              </button>
+              <div className="note">
+                현재 값과의 차이(메소·조각)를 오늘 날짜 <b>사냥 기록(자산 보정)</b>으로 남겨 총자산에 반영합니다.
+              </div>
+            </>
+          )}
         </div>
       </div>
 
