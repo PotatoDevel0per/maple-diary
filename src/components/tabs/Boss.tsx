@@ -248,6 +248,55 @@ export default function Boss() {
         </button>
       </div>
 
+      {/* 캐릭터별 수익 내역 (선택한 주차/월간) */}
+      <div className="panel" style={{ marginBottom: 16 }}>
+        <div className="card-head">
+          <div>
+            <div className="card-title">캐릭터별 수익</div>
+            <div className="card-sub">
+              {isMonth
+                ? `${m + 1}월 월간보스 · 캐릭터별`
+                : `${m + 1}월 ${weeks.indexOf(weekSel) + 1}주차 · ${weekRangeLabel(weekSel)}`}
+            </div>
+          </div>
+          <div className="card-aside">{fmtMeso(isMonth ? monthBossSum(s, mk) : weekTotal(s, weekSel).sum)}</div>
+        </div>
+        {chars.map((c) => {
+          if (isMonth) {
+            const cc = c as BossMonthChar;
+            const v =
+              cc.diff && BOSS_MONTHLY[0].diffs[cc.diff] != null
+                ? Math.floor(BOSS_MONTHLY[0].diffs[cc.diff] / (cc.party || 1))
+                : 0;
+            return (
+              <div
+                key={c.id}
+                className="stat-line"
+                style={{ cursor: "pointer" }}
+                onClick={() => setCharSel(c.id)}
+              >
+                <span style={{ fontWeight: c.id === charSel ? 800 : undefined }}>{c.name}</span>
+                <b style={{ color: v ? "var(--accent-deep)" : "var(--ink-soft)" }}>{v ? fmtMeso(v) : "미기록"}</b>
+              </div>
+            );
+          }
+          const t = charTotal(c as BossWeekChar);
+          return (
+            <div
+              key={c.id}
+              className="stat-line"
+              style={{ cursor: "pointer" }}
+              onClick={() => setCharSel(c.id)}
+            >
+              <span style={{ fontWeight: c.id === charSel ? 800 : undefined }}>
+                {c.name} <span className="sub">결정 {t.count}/{WEEKLY_SELL_LIMIT}</span>
+              </span>
+              <b style={{ color: t.sum ? "var(--accent-deep)" : "var(--ink-soft)" }}>{t.sum ? fmtMeso(t.sum) : "미기록"}</b>
+            </div>
+          );
+        })}
+      </div>
+
       <div className="panel tbl-wrap">
         <div className="card-head">
           <div>
@@ -286,7 +335,10 @@ export default function Boss() {
                   const v = cc.diff && BOSS_MONTHLY[0].diffs[cc.diff] != null ? Math.floor(BOSS_MONTHLY[0].diffs[cc.diff] / (cc.party || 1)) : 0;
                   return v ? fmtMeso(v) : "미기록";
                 })()
-              : `${charTotal(c as BossWeekChar).count}/${WEEKLY_SELL_LIMIT}`;
+              : (() => {
+                  const t = charTotal(c as BossWeekChar);
+                  return `${t.sum ? fmtMeso(t.sum) : "미기록"} · ${t.count}/${WEEKLY_SELL_LIMIT}`;
+                })();
             return (
               <button key={c.id} className={"chip" + (c.id === charSel ? " on" : "")} onClick={() => setCharSel(c.id)}>
                 {c.name} <span style={{ opacity: 0.75, fontWeight: 600 }}>{label}</span>
