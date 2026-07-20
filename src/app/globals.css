@@ -250,7 +250,7 @@
 
   /* ---------- 모달 ---------- */
   .modal-bg{
-    display:none;position:fixed;inset:0;background:rgba(92,63,31,.35);z-index:20;
+    display:none;position:fixed;inset:0;background:rgba(92,63,31,.35);z-index:60;
     align-items:center;justify-content:center;padding:24px;
   }
   .modal-bg.open{display:flex}
@@ -275,7 +275,7 @@
   .toast{
     position:fixed;left:50%;bottom:36px;transform:translateX(-50%);
     background:var(--ink);color:#fff;font-size:13px;padding:10px 20px;border-radius:999px;
-    opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:30;white-space:nowrap;
+    opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:70;white-space:nowrap;
   }
   .toast.show{opacity:1}
 
