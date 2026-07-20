@@ -11,6 +11,7 @@ import {
   levelDiff,
   monthNet,
   recoveryStatus,
+  totalGameMeso,
 } from "@/lib/calc";
 import { dsOf, fmtMeso, fmtWon, todayStr } from "@/lib/format";
 import { saveGoal } from "@/server/actions/settings";
@@ -37,7 +38,11 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
     toast(r ? "목표를 저장했어요" : "목표를 해제했어요");
   };
 
-  const activeDays = new Set(s.hunts.filter((r) => inThisMonth(r.date)).map((r) => r.date)).size;
+  /* 현재 보유 자산 (누적 흐름 기반) */
+  const assetTotal = totalGameMeso(s); /* 사냥(메소+조각) + 보스 + 가계부 순액 */
+  const totalSol = s.hunts.reduce((a, h) => a + (h.sol || 0), 0);
+  const solValue = totalSol * s.solPrice;
+  const mesoOnly = assetTotal - solValue; /* 조각 환산분을 뺀 순수 메소 */
 
   /* 이번 달 지출 카테고리별 */
   const expM = s.expenses.filter((e) => inThisMonth(e.date) && e.kind !== "in");
@@ -148,65 +153,103 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
         </div>
       </div>
 
-      {/* KPI */}
+      {/* 오늘 순수익 · 이번 달 요약+목표 · 보유 자산 */}
       <div className="grid" style={{ marginBottom: 16 }}>
         <div className="panel kpi span-3">
           <div className="label">오늘 순수익</div>
           <div className="value">{fmtMeso(dailyNet(s, todayStr()))}</div>
+          <div className="hint">최근 7일 평균 {fmtMeso(avg)}</div>
         </div>
-        <div className="panel kpi span-3">
-          <div className="label">최근 7일 평균</div>
-          <div className="value">{fmtMeso(avg)}</div>
-        </div>
-        <div className="panel kpi span-3" style={{ position: "relative" }}>
-          <div className="label">
-            목표 진행{" "}
+
+        <div className="panel span-5">
+          <div className="card-head">
+            <div className="card-title">이번 달 요약</div>
             <a
               className="card-aside"
-              style={{ position: "absolute", top: 14, right: 16, fontSize: 12, cursor: "pointer" }}
+              style={{ cursor: "pointer" }}
               onClick={() => {
                 setGoalInput(s.goal ? String(+(s.goal / 1e8).toFixed(1)) : "");
                 setEditGoal((v) => !v);
               }}
             >
-              {editGoal ? "닫기" : "✏️ 설정"}
+              {editGoal ? "닫기" : "✏️ 목표"}
             </a>
           </div>
-          {!editGoal ? (
-            <>
-              <div className="value small">{s.goal > 0 ? goalPct.toFixed(1) + "%" : "목표 미설정"}</div>
-              <div className="progress-track" style={{ height: 6, margin: "7px 0 5px" }}>
-                <div className="progress-fill" style={{ width: Math.max(0, Math.min(100, goalPct)) + "%" }} />
+          <div className="stat-line">
+            <span>총수익</span>
+            <b>{fmtMeso(m.rev)}</b>
+          </div>
+          <div className="stat-line">
+            <span>지출</span>
+            <b style={{ color: "var(--danger)" }}>-{fmtMeso(m.exp)}</b>
+          </div>
+          <div className="stat-line">
+            <span>순수익</span>
+            <b style={{ color: "var(--accent-deep)" }}>{fmtMeso(m.net)}</b>
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            {!editGoal ? (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}>
+                  <span>목표 진행 {s.goal > 0 ? goalPct.toFixed(1) + "%" : "· 미설정"}</span>
+                  {s.goal > 0 && (
+                    <b>
+                      {fmtMeso(m.net)} / {fmtMeso(s.goal)}
+                    </b>
+                  )}
+                </div>
+                <div className="progress-track" style={{ height: 10, margin: 0 }}>
+                  <div className="progress-fill" style={{ width: Math.max(0, Math.min(100, goalPct)) + "%" }} />
+                </div>
+                <div className="progress-note" style={{ marginTop: 6 }}>
+                  {s.goal > 0
+                    ? goalRemain === 0
+                      ? "🎉 이번 달 목표를 달성했어요!"
+                      : `목표까지 ${fmtMeso(goalRemain)} · 하루 ${fmtMeso(goalRemain / daysLeft)} 페이스`
+                    : "✏️ 목표를 눌러 이번 달 목표를 설정하세요"}
+                </div>
+              </>
+            ) : (
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  placeholder="월 목표 (억)"
+                  value={goalInput}
+                  onChange={(e) => setGoalInput(e.target.value)}
+                  style={{ flex: 1, minWidth: 0, border: "1px solid var(--line)", borderRadius: 12, padding: "9px 11px", fontSize: 15, fontFamily: "inherit", background: "#fffdf9", color: "var(--ink)" }}
+                />
+                <button className="btn" style={{ padding: "9px 18px", fontSize: 13 }} onClick={saveGoalInline}>
+                  저장
+                </button>
               </div>
-              <div className="hint">
-                {s.goal > 0
-                  ? goalRemain === 0
-                    ? `${fmtMeso(m.net)} / ${fmtMeso(s.goal)} · 🎉 달성!`
-                    : `${fmtMeso(m.net)} / ${fmtMeso(s.goal)} · 하루 ${fmtMeso(goalRemain / daysLeft)} 페이스`
-                  : "✏️ 설정을 눌러 입력하세요"}
-              </div>
-            </>
-          ) : (
-            <div>
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                placeholder="월 목표 (억)"
-                value={goalInput}
-                onChange={(e) => setGoalInput(e.target.value)}
-                style={{ width: "100%", border: "1px solid var(--line)", borderRadius: 12, padding: "9px 11px", fontSize: 15, fontFamily: "inherit", background: "#fffdf9", color: "var(--ink)", marginBottom: 8 }}
-              />
-              <button className="btn block" style={{ padding: 9, fontSize: 13 }} onClick={saveGoalInline}>
-                저장
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-        <div className="panel kpi span-3">
-          <div className="label">이번 달 활동일</div>
-          <div className="value">{activeDays}일</div>
-          <div className="hint">총 사냥 {s.hunts.length}회</div>
+
+        <div className="panel span-4">
+          <div className="card-head">
+            <div>
+              <div className="card-title">💰 현재 보유 자산</div>
+              <div className="card-sub">누적 사냥·보스·가계부 기준</div>
+            </div>
+          </div>
+          <div className="stat-line">
+            <span>보유 메소</span>
+            <b>{fmtMeso(mesoOnly)}</b>
+          </div>
+          <div className="stat-line">
+            <span>솔 에르다 조각</span>
+            <b>
+              {totalSol.toLocaleString("ko-KR")}개 <span className="sub">({fmtMeso(solValue)})</span>
+            </b>
+          </div>
+          <div className="stat-line" style={{ marginTop: 4 }}>
+            <span>총 자산 (메소 환산)</span>
+            <b style={{ color: "var(--accent-deep)" }}>{fmtMeso(assetTotal)}</b>
+          </div>
         </div>
       </div>
 
@@ -243,9 +286,9 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
         </div>
       </div>
 
-      {/* 최근 사냥 + 월 요약 */}
+      {/* 최근 사냥 */}
       <div className="grid" style={{ marginBottom: 16 }}>
-        <div className="panel span-7">
+        <div className="panel span-12">
           <div className="card-head">
             <div className="card-title">최근 사냥</div>
             <a className="card-aside" onClick={() => onGo("records")}>
@@ -267,23 +310,6 @@ export default function Dashboard({ onGo }: { onGo: (v: "records" | "cash" | "le
               </div>
             ))
           )}
-        </div>
-        <div className="panel span-5">
-          <div className="card-head">
-            <div className="card-title">이번 달 요약</div>
-          </div>
-          <div className="stat-line">
-            <span>총수익</span>
-            <b>{fmtMeso(m.rev)}</b>
-          </div>
-          <div className="stat-line">
-            <span>지출</span>
-            <b style={{ color: "var(--danger)" }}>-{fmtMeso(m.exp)}</b>
-          </div>
-          <div className="stat-line">
-            <span>순수익</span>
-            <b style={{ color: "var(--accent-deep)" }}>{fmtMeso(m.net)}</b>
-          </div>
         </div>
       </div>
 
